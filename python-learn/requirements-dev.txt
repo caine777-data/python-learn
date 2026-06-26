@@ -1,0 +1,2 @@
+# Dépendances nécessaires uniquement pour générer l'exécutable
+pyinstaller>=6.0

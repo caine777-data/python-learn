@@ -1,0 +1,5 @@
+# L'application ne dépend QUE de la bibliothèque standard de Python
+# (tkinter est inclus avec Python sous Windows et macOS).
+# Aucune dépendance à installer pour FAIRE TOURNER l'application.
+#
+# Pour CONSTRUIRE l'exécutable en local, voir requirements-dev.txt.
