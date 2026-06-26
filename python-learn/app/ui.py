@@ -42,6 +42,10 @@ LEVEL_BADGE_NAMES = {
     "intermediaire": "Intermédiaire",
     "avance": "Avancé",
     "expert": "Expert",
+    "scripts": "Scripts & automatisation",
+    "interfaces": "Interfaces graphiques",
+    "web": "Python & le web",
+    "admin": "Administrer son PC",
 }
 
 
@@ -249,6 +253,8 @@ class PythonLearnApp:
                                    spacing1=2, spacing3=2)
         self.content.tag_configure("inline", foreground=C["code"], font=self.mono)
         self.content.tag_configure("bullet", foreground=C["fg"], lmargin1=16, lmargin2=30)
+        self.content.tag_configure(
+            "bold", font=(self.body.cget("family"), 11, "bold"))
 
     # ---------------------------------------------------------------- arbre
     def _populate_tree(self):
@@ -324,8 +330,14 @@ class PythonLearnApp:
         self.content.configure(state="disabled")
 
     def _insert_inline(self, text, base_tag):
+        """Gère le code `en ligne` et le **gras** dans une portion de texte."""
         for i, part in enumerate(text.split("`")):
-            self.content.insert(tk.END, part, "inline" if i % 2 else base_tag)
+            if i % 2 == 1:                      # entre backticks : code
+                self.content.insert(tk.END, part, "inline")
+            else:                               # hors code : gérer le **gras**
+                for j, seg in enumerate(part.split("**")):
+                    tags = (base_tag, "bold") if j % 2 == 1 else base_tag
+                    self.content.insert(tk.END, seg, tags)
 
     # -------------------------------------------------------------- console
     def _clear_console(self):

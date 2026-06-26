@@ -5,7 +5,7 @@ débutant au niveau expert**. Chaque leçon mêle une explication claire et
 un exercice que l'on résout dans un éditeur intégré : le code s'exécute
 pour de vrai et la réussite est vérifiée automatiquement.
 
-- ✅ Parcours structuré en 4 niveaux (Débutant → Intermédiaire → Avancé → Expert)
+- ✅ Parcours structuré : **8 parcours, 66 leçons**, du tout débutant aux projets concrets
 - ✅ Éditeur de code intégré avec **exécution réelle** et console de sortie
 - ✅ **Vérification automatique** des exercices (le code est testé)
 - ✅ **Suivi de progression** sauvegardé localement
@@ -21,6 +21,21 @@ pour de vrai et la réussite est vérifiée automatiquement.
 
 > *Captures réalisées en environnement de test ; les emojis des badges
 > s'affichent normalement sur Windows et macOS.*
+
+## 📚 Les parcours
+
+**Fondamentaux**
+1. **Débutant** (15 leçons) — pensé pour quelqu'un qui n'a jamais codé : afficher, variables, calculs, texte, `input()`, conditions, boucles, listes, fonctions, modules, et un atelier final.
+2. **Intermédiaire** (10) — slicing, compréhensions, tuples, dictionnaires, fonctions avancées, ensembles, modules, tri, exceptions.
+3. **Avancé** (10) — générateurs, POO complète, décorateurs, propriétés, fichiers, expressions régulières.
+4. **Expert** (10) — gestionnaires de contexte, dataclasses, `functools`, async, ABC, tests unitaires, `itertools`.
+
+**Parcours pratiques (orientés projets)**
+
+5. **Scripts & automatisation** (6) — scripts, `pathlib`, fichiers, JSON, CSV, dates.
+6. **Interfaces graphiques** (5) — créer des fenêtres et des apps avec Tkinter.
+7. **Python & le web** (5) — HTTP, générer du HTML, lire une API, mini-serveur, Flask/Django.
+8. **Administrer son PC** (5) — système, variables d'environnement, parcourir/copier des fichiers, ranger un dossier automatiquement.
 
 ---
 
@@ -101,6 +116,7 @@ n'est requise.
 | `## Titre`       | Sous-titre                     |
 | `` ```...``` ``  | Bloc de code (monospace)       |
 | `` `code` ``     | Code en ligne                  |
+| `**gras**`       | Texte en gras                  |
 | `- élément`      | Puce                           |
 
 **Modes de validation d'un exercice :**
@@ -124,10 +140,14 @@ python-learn/
 │   └── icon.py              # icône embarquée (base64)
 ├── content/
 │   ├── __init__.py          # agrégation du curriculum
-│   ├── debutant.py          # 10 leçons
+│   ├── debutant.py          # 15 leçons
 │   ├── intermediaire.py     # 10 leçons
 │   ├── avance.py            # 10 leçons
-│   └── expert.py            # 10 leçons
+│   ├── expert.py            # 10 leçons
+│   ├── scripts.py           # Scripts & automatisation (6)
+│   ├── interfaces.py        # Interfaces graphiques (5)
+│   ├── web.py               # Python & le web (5)
+│   └── admin.py             # Administrer son PC (5)
 ├── assets/
 │   ├── icon.ico / .icns / .png   # icônes pour le build
 │   └── screenshot-*.png

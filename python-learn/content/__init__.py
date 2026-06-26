@@ -19,13 +19,18 @@ Structure d'une leçon :
     }
 """
 
-from . import debutant, intermediaire, avance, expert
+from . import (debutant, intermediaire, avance, expert,
+               scripts, interfaces, web, admin)
 
 CURRICULUM = [
     debutant.LEVEL,
     intermediaire.LEVEL,
     avance.LEVEL,
     expert.LEVEL,
+    scripts.LEVEL,
+    interfaces.LEVEL,
+    web.LEVEL,
+    admin.LEVEL,
 ]
 
 
