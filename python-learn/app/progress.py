@@ -12,20 +12,20 @@ from pathlib import Path
 DATA_DIR = Path.home() / ".python-learn"
 PROGRESS_FILE = DATA_DIR / "progress.json"
 
-_DEFAULT = {"completed": [], "code": {}, "badges": [], "theme": "dark"}
+_DEFAULT = {"completed": [], "code": {}, "badges": [], "theme": "dark",
+            "vu_accueil": False, "historique": {}, "objectif_quotidien": 3,
+            "srs": {}, "nom": "", "langue": "fr"}
 
 
 def load_progress():
     """Charge la progression. Retourne une structure par défaut si absente."""
     try:
         data = json.loads(PROGRESS_FILE.read_text(encoding="utf-8"))
-        data.setdefault("completed", [])
-        data.setdefault("code", {})
-        data.setdefault("badges", [])
-        data.setdefault("theme", "dark")
-        return data
     except Exception:
-        return {"completed": [], "code": {}, "badges": [], "theme": "dark"}
+        data = {}
+    for cle, valeur in _DEFAULT.items():
+        data.setdefault(cle, valeur.copy() if isinstance(valeur, (dict, list)) else valeur)
+    return data
 
 
 def save_progress(data):
@@ -61,6 +61,32 @@ def award_badge(data, level_id):
 
 def set_theme(data, theme):
     data["theme"] = theme
+    save_progress(data)
+
+
+def marquer_accueil_vu(data):
+    data["vu_accueil"] = True
+    save_progress(data)
+
+
+def enregistrer_activite(data, date_iso):
+    """Incrémente le compteur d'exercices du jour."""
+    data["historique"][date_iso] = data["historique"].get(date_iso, 0) + 1
+    save_progress(data)
+
+
+def set_nom(data, nom):
+    data["nom"] = nom
+    save_progress(data)
+
+
+def set_objectif(data, n):
+    data["objectif_quotidien"] = max(1, n)
+    save_progress(data)
+
+
+def set_langue(data, lang):
+    data["langue"] = lang
     save_progress(data)
 
 

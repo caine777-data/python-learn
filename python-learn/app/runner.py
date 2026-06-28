@@ -13,8 +13,45 @@ le délai imparti.
 import ctypes
 import threading
 import io
+import sys
+import builtins as _builtins
 import contextlib
 import traceback
+
+
+# Modules autorisés dans le bac à sable « Brouillon » (expérimentation sûre).
+SANDBOX_MODULES = {
+    "math", "cmath", "random", "statistics", "decimal", "fractions",
+    "datetime", "calendar", "time", "json", "re", "string", "textwrap",
+    "unicodedata", "collections", "itertools", "functools", "heapq",
+    "bisect", "operator", "enum", "typing", "dataclasses", "pprint",
+}
+
+# Fonctions intégrées retirées du bac à sable (accès fichier/système, eval…).
+_BUILTINS_BLOQUES = {"open", "eval", "exec", "compile", "memoryview"}
+
+
+def _import_garde(allow):
+    reel = _builtins.__import__
+
+    def gardien(name, *args, **kwargs):
+        racine = name.split(".")[0]
+        if racine not in allow:
+            raise ImportError(
+                f"Module « {racine} » non autorisé dans le bac à sable.")
+        return reel(name, *args, **kwargs)
+    return gardien
+
+
+def _builtins_sandbox(allow):
+    """Construit un __builtins__ restreint pour le bac à sable."""
+    safe = {k: getattr(_builtins, k) for k in dir(_builtins)
+            if not k.startswith("_")}
+    for nom in _BUILTINS_BLOQUES:
+        safe.pop(nom, None)
+    safe["__import__"] = _import_garde(allow)
+    safe["input"] = lambda *a, **k: ""   # pas de saisie bloquante
+    return safe
 
 
 class ExecutionResult:
@@ -40,9 +77,13 @@ def _async_raise(thread_id, exctype):
         ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(thread_id), None)
 
 
-def run_code(code, namespace=None, timeout=6.0):
+def run_code(code, namespace=None, timeout=6.0, safe=False, allow=None):
     """
     Exécute `code` et capture sa sortie standard.
+
+    Si `safe=True`, le code s'exécute dans un bac à sable restreint :
+    seuls les modules de `allow` (par défaut SANDBOX_MODULES) sont
+    importables, et les fonctions d'accès fichier/système sont retirées.
 
     Retourne (ExecutionResult, namespace) — le namespace contient les
     variables/fonctions définies par le code (utile pour les vérifications).
@@ -50,6 +91,8 @@ def run_code(code, namespace=None, timeout=6.0):
     if namespace is None:
         namespace = {}
     namespace.setdefault("__name__", "__main__")
+    if safe:
+        namespace["__builtins__"] = _builtins_sandbox(allow or SANDBOX_MODULES)
 
     buffer = io.StringIO()
     holder = {"error": None}
@@ -85,6 +128,33 @@ def run_code(code, namespace=None, timeout=6.0):
         ExecutionResult(output=buffer.getvalue(), error=error_text, timed_out=timed_out),
         namespace,
     )
+
+
+_TYPES_AFFICHABLES = (int, float, str, bool, list, dict, tuple, set,
+                      frozenset, bytes, type(None))
+
+
+def inspecter(namespace, limite=200):
+    """
+    Extrait les variables « simples » d'un espace de noms, pour les
+    montrer à l'apprenant après exécution (int, listes, dicts...).
+
+    Renvoie une liste de couples (nom, représentation).
+    """
+    out = []
+    for nom, val in namespace.items():
+        if nom.startswith("__") or nom == "input":
+            continue
+        if not isinstance(val, _TYPES_AFFICHABLES):
+            continue
+        try:
+            rep = repr(val)
+        except Exception:
+            continue
+        if len(rep) > limite:
+            rep = rep[:limite - 1] + "…"
+        out.append((nom, rep))
+    return out
 
 
 def run_exercise(user_code, check_code=None, expected_output=None,
@@ -126,3 +196,59 @@ def run_exercise(user_code, check_code=None, expected_output=None,
         return result, False, check_result.error or "Un test a échoué."
 
     return result, True, "Code exécuté."
+
+
+def tracer(code, stdin_lines=None, max_steps=2000):
+    """
+    Exécute le code en enregistrant, à chaque ligne, le numéro de ligne,
+    l'état des variables simples et la sortie produite jusque-là.
+
+    Renvoie (etapes, erreur). Chaque étape est un dict :
+        {"ligne": int|None, "vars": [(nom, repr), ...], "sortie": str}
+    """
+    try:
+        compiled = compile(code, "<pasapas>", "exec")
+    except SyntaxError as e:
+        return [], "Erreur de syntaxe : " + (e.msg or str(e))
+
+    etapes = []
+    buffer = io.StringIO()
+    ns = {"__name__": "__main__"}
+    if stdin_lines is not None:
+        feed = iter(stdin_lines)
+        ns["input"] = lambda prompt="": next(feed, "")
+    else:
+        ns["input"] = lambda prompt="": ""
+    depasse = {"v": False}
+
+    def trace(frame, event, arg):
+        if frame.f_code.co_filename != "<pasapas>":
+            return trace
+        if event == "line":
+            if len(etapes) >= max_steps:
+                depasse["v"] = True
+                raise KeyboardInterrupt
+            variables = inspecter({**frame.f_globals, **frame.f_locals})
+            etapes.append({"ligne": frame.f_lineno, "vars": variables,
+                           "sortie": buffer.getvalue()})
+        return trace
+
+    erreur = None
+    ancien = sys.gettrace()
+    try:
+        with contextlib.redirect_stdout(buffer), contextlib.redirect_stderr(buffer):
+            sys.settrace(trace)
+            exec(compiled, ns)
+    except KeyboardInterrupt:
+        pass
+    except BaseException as exc:  # noqa: BLE001
+        erreur = "".join(traceback.format_exception_only(type(exc), exc)).strip()
+    finally:
+        sys.settrace(ancien)
+
+    # état final (après la dernière ligne)
+    etapes.append({"ligne": None, "vars": inspecter(ns),
+                   "sortie": buffer.getvalue()})
+    if depasse["v"]:
+        erreur = (erreur + " " if erreur else "") + "(arrêt : trop d'étapes)"
+    return etapes, erreur

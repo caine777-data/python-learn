@@ -5,37 +5,81 @@ débutant au niveau expert**. Chaque leçon mêle une explication claire et
 un exercice que l'on résout dans un éditeur intégré : le code s'exécute
 pour de vrai et la réussite est vérifiée automatiquement.
 
-- ✅ Parcours structuré : **8 parcours, 66 leçons**, du tout débutant aux projets concrets
-- ✅ Éditeur de code intégré avec **exécution réelle** et console de sortie
-- ✅ **Vérification automatique** des exercices (le code est testé)
-- ✅ **Suivi de progression** sauvegardé localement
-- ✅ **Thème clair / sombre** commutable (mémorisé d'une session à l'autre)
-- ✅ **Badges de réussite** débloqués à la fin de chaque niveau
-- ✅ Solutions révélables, réinitialisation, raccourci `Ctrl+Entrée`
+- ✅ Parcours structuré : **11 parcours, 105 exercices**, du tout débutant aux projets concrets
+- ✅ Éditeur intégré avec **coloration syntaxique**, **numéros de ligne** et **exécution réelle**
+- ✅ **Syntaxe vérifiée en temps réel** (ligne fautive soulignée), **autocomplétion** (Ctrl+Espace)
+- ✅ **Exécution pas-à-pas** : avance ligne par ligne en voyant les variables et la sortie évoluer
+- ✅ **Export** du code d'un exercice en fichier `.py`
+- ✅ **Vérification automatique** des exercices, avec **messages d'erreur expliqués en français**
+- ✅ **Inspecteur de variables** après exécution + **comparaison attendu/obtenu** en cas d'échec
+- ✅ **Bac à sable** libre (« Brouillon ») pour expérimenter sans exercice
+- ✅ **Indices progressifs** (dévoilés un par un) avant de révéler la solution
+- ✅ **Quiz (QCM) à la fin de chaque parcours** et **projets guidés multi-étapes**
+- ✅ **3 thèmes** (sombre / clair / contraste élevé) + **zoom** du texte
+- ✅ **Glossaire** intégré, **mode révision**, **recherche** de leçon, lien vers la doc Python
+- ✅ **Suivi de progression** (barre + compteurs par parcours) et **badges** par parcours
+- ✅ **Série de jours (streak)**, objectif quotidien et **statistiques** (graphique 7 jours)
+- ✅ **Révision espacée** : les exercices reviennent à intervalles croissants (1, 3, 7, 16… jours)
+- ✅ **Certificat** de fin de parcours (HTML imprimable, à ton nom)
+- ✅ Confort d'édition : auto-fermeture des parenthèses, `Ctrl+/` pour commenter, indentation de bloc
+- ✅ **Interface bilingue FR / EN** (bascule en un clic ; le contenu des leçons reste en français)
 - ✅ **Zéro dépendance** pour l'utilisateur (tout est en bibliothèque standard)
+- ✅ **Bac à sable sécurisé** : le « Brouillon » limite les modules importables et l'accès fichier/système
+- ✅ **Tests automatisés** du curriculum (les 105 solutions sont vérifiées par la CI)
 - ✅ Exécutables Windows / macOS / Linux générés **automatiquement** par GitHub Actions
 
-|  Thème sombre  |  Thème clair  |
-|:---:|:---:|
-| ![sombre](assets/screenshot-dark.png) | ![clair](assets/screenshot-light.png) |
+|  Thème sombre  |  Thème clair  |  Quiz (contraste élevé)  |
+|:---:|:---:|:---:|
+| ![sombre](assets/screenshot-dark.png) | ![clair](assets/screenshot-light.png) | ![quiz](assets/screenshot-quiz.png) |
 
 > *Captures réalisées en environnement de test ; les emojis des badges
 > s'affichent normalement sur Windows et macOS.*
 
+Le tableau de bord **Stats** (série, objectif, graphique 7 jours, révisions, certificats) :
+
+![stats](assets/screenshot-stats.png)
+
+L'**exécution pas-à-pas** (ligne courante surlignée, variables et sortie à chaque étape) :
+
+![pas-à-pas](assets/screenshot-step.png)
+
+L'**interface bilingue** — ici en anglais (le contenu des leçons reste en français) :
+
+![anglais](assets/screenshot-en.png)
+
+## ⌨️ Raccourcis
+
+| Raccourci | Action |
+|-----------|--------|
+| `Ctrl + Entrée` | Exécuter le code |
+| `Ctrl + Espace` | Autocomplétion (mots-clés et noms du code) |
+| `Ctrl + /` | Commenter / décommenter la sélection |
+| `Tab` / `Maj + Tab` | Indenter / désindenter la sélection |
+| `Ctrl + +` / `Ctrl + -` / `Ctrl + 0` | Zoom avant / arrière / réinitialiser |
+
 ## 📚 Les parcours
 
+Chaque parcours de cours se termine par un **quiz de récap**. Le dernier
+parcours est entièrement consacré aux **projets guidés**.
+
 **Fondamentaux**
-1. **Débutant** (15 leçons) — pensé pour quelqu'un qui n'a jamais codé : afficher, variables, calculs, texte, `input()`, conditions, boucles, listes, fonctions, modules, et un atelier final.
-2. **Intermédiaire** (10) — slicing, compréhensions, tuples, dictionnaires, fonctions avancées, ensembles, modules, tri, exceptions.
-3. **Avancé** (10) — générateurs, POO complète, décorateurs, propriétés, fichiers, expressions régulières.
-4. **Expert** (10) — gestionnaires de contexte, dataclasses, `functools`, async, ABC, tests unitaires, `itertools`.
+1. **Débutant** — afficher, variables, calculs, texte, `input()`, conditions, boucles, listes, fonctions, modules, atelier + quiz.
+2. **Intermédiaire** — slicing, compréhensions, tuples, dictionnaires, fonctions avancées, ensembles, modules, tri, exceptions + quiz.
+3. **Avancé** — générateurs, POO complète, décorateurs, propriétés, fichiers, expressions régulières + quiz.
+4. **Expert** — gestionnaires de contexte, dataclasses, `functools`, async, ABC, tests unitaires, `itertools` + quiz.
 
 **Parcours pratiques (orientés projets)**
 
-5. **Scripts & automatisation** (6) — scripts, `pathlib`, fichiers, JSON, CSV, dates.
-6. **Interfaces graphiques** (5) — créer des fenêtres et des apps avec Tkinter.
-7. **Python & le web** (5) — HTTP, générer du HTML, lire une API, mini-serveur, Flask/Django.
-8. **Administrer son PC** (5) — système, variables d'environnement, parcourir/copier des fichiers, ranger un dossier automatiquement.
+5. **Scripts & automatisation** — scripts, `pathlib`, fichiers, JSON, CSV, dates + quiz.
+6. **Interfaces graphiques** — créer des fenêtres et des apps avec Tkinter + quiz.
+7. **Python & le web** — HTTP, générer du HTML, lire une API, mini-serveur, Flask/Django + quiz.
+8. **Administrer son PC** — système, variables d'environnement, fichiers, ranger un dossier + quiz.
+9. **Bases de données (SQLite)** — créer une table, INSERT, SELECT, WHERE, UPDATE/DELETE, agrégats + quiz.
+10. **Dessiner (turtle)** — polygones, motifs, spirales, coordonnées, rosace + quiz.
+
+**Projets guidés** (multi-étapes, validés exercice par exercice)
+
+11. **Projets guidés** — le **Pendu**, une **liste de tâches**, un **bloc-notes** Tkinter, un **convertisseur de devises**, le **Jeu de la vie** de Conway, et le **hachage sécurisé** d'un mot de passe.
 
 ---
 
@@ -126,6 +170,13 @@ n'est requise.
   variables/fonctions définies par l'apprenant ;
 - `stdin` : liste de lignes simulant la saisie clavier (`input()`).
 
+**Champs avancés (facultatifs) :**
+
+- `hints` : liste d'indices dévoilés un par un (ou via `content/hints.py`) ;
+- `type: "quiz"` + `question`, `options`, `answer` (index), `explanation` : une leçon QCM ;
+- `exercices` : liste d'exercices (`prompt`, `starter`, `check`/`expected_output`,
+  `solution`, `hints`) pour un projet multi-étapes affiché avec des onglets.
+
 ---
 
 ## 🗂️ Structure du projet
@@ -134,24 +185,28 @@ n'est requise.
 python-learn/
 ├── main.py                  # point d'entrée
 ├── app/
-│   ├── ui.py                # interface graphique (thème, badges, éditeur)
-│   ├── runner.py            # exécution + vérification du code
+│   ├── ui.py                # interface principale
+│   ├── editor.py            # éditeur (coloration, n° de ligne, confort)
+│   ├── runner.py            # exécution + vérification + bac à sable
+│   ├── errors.py            # explication pédagogique des erreurs
+│   ├── stats.py             # streak, répétition espacée, certificat
+│   ├── i18n.py              # traductions FR / EN de l'interface
 │   ├── progress.py          # sauvegarde de la progression
 │   └── icon.py              # icône embarquée (base64)
 ├── content/
-│   ├── __init__.py          # agrégation du curriculum
-│   ├── debutant.py          # 15 leçons
-│   ├── intermediaire.py     # 10 leçons
-│   ├── avance.py            # 10 leçons
-│   ├── expert.py            # 10 leçons
-│   ├── scripts.py           # Scripts & automatisation (6)
-│   ├── interfaces.py        # Interfaces graphiques (5)
-│   ├── web.py               # Python & le web (5)
-│   └── admin.py             # Administrer son PC (5)
-├── assets/
-│   ├── icon.ico / .icns / .png   # icônes pour le build
-│   └── screenshot-*.png
-├── .github/workflows/build.yml   # génération auto des exécutables
+│   ├── __init__.py          # agrégation + utilitaires du schéma
+│   ├── debutant.py … admin.py   # les 8 parcours de cours
+│   ├── sqlite_db.py         # parcours Bases de données (SQLite)
+│   ├── dessin.py            # parcours Dessiner (turtle)
+│   ├── projets.py           # projets guidés multi-exercices
+│   ├── quiz_parcours.py     # un quiz de fin par parcours (injecté auto)
+│   ├── hints.py             # indices progressifs
+│   └── glossaire.py         # termes du glossaire
+├── assets/                  # icônes + captures
+├── tests/                   # tests automatiques du curriculum
+├── .github/workflows/
+│   ├── build.yml            # génération auto des exécutables
+│   └── tests.yml            # validation du curriculum (CI)
 ├── requirements.txt
 ├── requirements-dev.txt
 └── README.md
