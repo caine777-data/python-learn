@@ -14,7 +14,15 @@ PROGRESS_FILE = DATA_DIR / "progress.json"
 
 _DEFAULT = {"completed": [], "code": {}, "badges": [], "theme": "dark",
             "vu_accueil": False, "historique": {}, "objectif_quotidien": 3,
-            "srs": {}, "nom": "", "langue": "fr"}
+            "srs": {}, "nom": "", "langue": "fr",
+            "notes": {}, "favoris": [], "objectif_hebdo": 15, "echecs": {}}
+
+
+def normaliser(data):
+    """Complète un dict de progression avec les clés par défaut manquantes."""
+    for cle, valeur in _DEFAULT.items():
+        data.setdefault(cle, valeur.copy() if isinstance(valeur, (dict, list)) else valeur)
+    return data
 
 
 def load_progress():
@@ -23,9 +31,7 @@ def load_progress():
         data = json.loads(PROGRESS_FILE.read_text(encoding="utf-8"))
     except Exception:
         data = {}
-    for cle, valeur in _DEFAULT.items():
-        data.setdefault(cle, valeur.copy() if isinstance(valeur, (dict, list)) else valeur)
-    return data
+    return normaliser(data)
 
 
 def save_progress(data):
@@ -88,6 +94,51 @@ def set_objectif(data, n):
 def set_langue(data, lang):
     data["langue"] = lang
     save_progress(data)
+
+
+def set_note(data, item_id, texte):
+    """Enregistre (ou efface) la note personnelle d'une leçon."""
+    if texte.strip():
+        data["notes"][item_id] = texte
+    else:
+        data["notes"].pop(item_id, None)
+    save_progress(data)
+
+
+def toggle_favori(data, item_id):
+    """Ajoute/retire une leçon des favoris. Renvoie l'état après bascule."""
+    if item_id in data["favoris"]:
+        data["favoris"].remove(item_id)
+        actif = False
+    else:
+        data["favoris"].append(item_id)
+        actif = True
+    save_progress(data)
+    return actif
+
+
+def set_objectif_hebdo(data, n):
+    data["objectif_hebdo"] = max(1, n)
+    save_progress(data)
+
+
+def enregistrer_echec(data, item_id):
+    """Compte un échec sur un exercice (pour la recommandation adaptative)."""
+    data["echecs"][item_id] = data["echecs"].get(item_id, 0) + 1
+    save_progress(data)
+
+
+def exporter_json(data):
+    """Renvoie la progression sérialisée (pour sauvegarde externe)."""
+    return json.dumps(data, ensure_ascii=False, indent=2)
+
+
+def importer_json(texte):
+    """Construit une progression valide à partir d'un JSON. Lève ValueError si invalide."""
+    charge = json.loads(texte)
+    if not isinstance(charge, dict) or "completed" not in charge:
+        raise ValueError("Fichier de progression non reconnu.")
+    return normaliser(charge)
 
 
 def reset_progress():

@@ -22,7 +22,8 @@ Schéma d'une leçon (tous les champs marqués (option) sont facultatifs) :
 """
 
 from . import (debutant, intermediaire, avance, expert,
-               scripts, interfaces, web, admin, sqlite_db, dessin, projets)
+               scripts, interfaces, web, admin, sqlite_db, dessin, projets,
+               entrainement, algos, donnees, tests_tdd)
 from .hints import HINTS
 from .glossaire import GLOSSAIRE
 from .quiz_parcours import QUIZ
@@ -38,7 +39,11 @@ CURRICULUM = [
     admin.LEVEL,
     sqlite_db.LEVEL,
     dessin.LEVEL,
+    algos.LEVEL,
+    donnees.LEVEL,
+    tests_tdd.LEVEL,
     projets.LEVEL,
+    entrainement.LEVEL,
 ]
 
 # Ajoute le quiz de fin à chaque parcours concerné (idempotent).

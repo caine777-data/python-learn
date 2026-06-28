@@ -8,6 +8,59 @@ import datetime
 # Intervalles de révision (en jours), de plus en plus espacés.
 INTERVALLES = [1, 3, 7, 16, 35, 90]
 
+# Points d'expérience.
+XP_PAR_ITEM = 10      # chaque exercice/quiz réussi
+XP_PAR_BADGE = 50     # chaque parcours terminé
+XP_PAR_NIVEAU = 100   # paliers réguliers
+
+
+def xp_total(completed, badges):
+    """Expérience accumulée : items réussis + bonus de badges."""
+    return XP_PAR_ITEM * len(completed) + XP_PAR_BADGE * len(badges)
+
+
+def niveau(xp):
+    """Traduit l'XP en (niveau, progression dans le niveau, palier).
+
+    Niveau 1 dès 0 XP ; chaque niveau demande XP_PAR_NIVEAU points.
+    """
+    niv = xp // XP_PAR_NIVEAU + 1
+    dans = xp % XP_PAR_NIVEAU
+    return {"niveau": niv, "dans_niveau": dans, "pour_suivant": XP_PAR_NIVEAU, "xp": xp}
+
+
+def cette_semaine(historique, today):
+    """Nombre d'activités depuis lundi de la semaine en cours (inclus)."""
+    lundi = today - datetime.timedelta(days=today.weekday())
+    total = 0
+    for d, c in historique.items():
+        try:
+            jour = datetime.date.fromisoformat(d)
+        except ValueError:
+            continue
+        if lundi <= jour <= today:
+            total += c
+    return total
+
+
+def prochaine_action(ordre_ids, completed, ids_dus):
+    """Recommande quoi faire ensuite.
+
+    - s'il y a des révisions dues  -> ("revision", id)
+    - sinon la première leçon non faite -> ("nouvelle", id)
+    - sinon tout est terminé -> ("termine", None)
+    `ordre_ids` est la liste de tous les item_ids dans l'ordre du curriculum.
+    """
+    faits = set(completed)
+    dus_a_faire = [i for i in ids_dus if i in set(ordre_ids)]
+    if dus_a_faire:
+        return ("revision", dus_a_faire[0])
+    for item_id in ordre_ids:
+        if item_id not in faits:
+            return ("nouvelle", item_id)
+    return ("termine", None)
+
+
 
 # --------------------------------------------------------------- séries (streak)
 def streak(historique, today):
@@ -104,4 +157,56 @@ def certificat_html(nom, parcours, date_str):
   <div class="pied"><span>PythonLearn 🐍</span><span>{date_str}</span></div>
 </div>
 <script>window.onload = () => {{ /* imprimable via Ctrl+P */ }};</script>
+</body></html>"""
+
+
+def cheatsheet_html(titre, sections):
+    """Antisèche imprimable (HTML autonome) à partir de sections.
+
+    `sections` = liste de (titre_section, [(code, explication), ...]).
+    """
+    import html as _html
+
+    blocs = []
+    for nom_section, lignes in sections:
+        items = "\n".join(
+            f'      <tr><td class="code">{_html.escape(code)}</td>'
+            f'<td class="desc">{_html.escape(desc)}</td></tr>'
+            for code, desc in lignes
+        )
+        blocs.append(
+            f'  <section>\n    <h2>{_html.escape(nom_section)}</h2>\n'
+            f'    <table>\n{items}\n    </table>\n  </section>'
+        )
+    corps = "\n".join(blocs)
+    return f"""<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8">
+<title>{_html.escape(titre)}</title>
+<style>
+  * {{ box-sizing: border-box; }}
+  body {{ font-family: -apple-system, Segoe UI, Roboto, sans-serif;
+         margin: 24px; color: #1a1a2e; background: #f6f7fb; }}
+  h1 {{ text-align: center; color: #5b4bdb; margin: 0 0 4px; }}
+  .sub {{ text-align: center; color: #777; margin: 0 0 20px; font-size: 14px; }}
+  .grid {{ column-count: 2; column-gap: 20px; }}
+  @media (max-width: 760px) {{ .grid {{ column-count: 1; }} }}
+  section {{ break-inside: avoid; background: #fff; border: 1px solid #e4e4f0;
+            border-radius: 10px; padding: 10px 14px; margin: 0 0 16px; }}
+  h2 {{ font-size: 15px; color: #5b4bdb; margin: 0 0 8px;
+       border-bottom: 2px solid #eceaff; padding-bottom: 4px; }}
+  table {{ width: 100%; border-collapse: collapse; }}
+  td {{ padding: 3px 4px; vertical-align: top; font-size: 13px; }}
+  .code {{ font-family: Consolas, Menlo, monospace; color: #1a1a2e;
+          white-space: nowrap; }}
+  .desc {{ color: #666; text-align: right; }}
+  .pied {{ text-align: center; color: #999; font-size: 12px; margin-top: 8px; }}
+  @media print {{ body {{ background: #fff; margin: 0; }}
+                 section {{ border-color: #ccc; }} }}
+</style></head><body>
+  <h1>🐍 {_html.escape(titre)}</h1>
+  <p class="sub">PythonLearn — mémo imprimable (Ctrl+P)</p>
+  <div class="grid">
+{corps}
+  </div>
+  <p class="pied">PythonLearn 🐍 — la syntaxe essentielle</p>
 </body></html>"""

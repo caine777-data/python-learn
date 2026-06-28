@@ -97,4 +97,33 @@ QUIZ = {
         "answer": 1,
         "explanation": "forward(distance) fait avancer la tortue.",
     },
+    "algos": {
+        "id": "qz-alg", "type": "quiz",
+        "title": "Quiz : récap Algorithmes",
+        "content": "## Algorithmes",
+        "question": "Quel algorithme exige que la liste soit déjà triée ?",
+        "options": ["la recherche linéaire", "la recherche dichotomique",
+                    "le tri à bulles", "le parcours complet"],
+        "answer": 1,
+        "explanation": "La recherche dichotomique élimine une moitié à chaque étape : "
+                       "elle suppose la liste triée.",
+    },
+    "donnees": {
+        "id": "qz-don", "type": "quiz",
+        "title": "Quiz : récap Données",
+        "content": "## Manipuler des données",
+        "question": "Quel objet compte les occurrences en une ligne ?",
+        "options": ["list", "Counter", "set", "tuple"],
+        "answer": 1,
+        "explanation": "collections.Counter compte tout seul et donne les plus fréquents.",
+    },
+    "tests_tdd": {
+        "id": "qz-tdd", "type": "quiz",
+        "title": "Quiz : récap Tests",
+        "content": "## Tests & TDD",
+        "question": "Quel module de la bibliothèque standard sert à écrire des tests ?",
+        "options": ["pytest", "unittest", "nose", "checker"],
+        "answer": 1,
+        "explanation": "unittest est inclus dans Python ; pytest et nose sont externes.",
+    },
 }

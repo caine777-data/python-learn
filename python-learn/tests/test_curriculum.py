@@ -52,5 +52,22 @@ class TestCurriculum(unittest.TestCase):
                 vus.add(lesson["id"])
 
 
+    def test_modes_debug_et_trous_coherents(self):
+        from app.runner import run_exercise
+        for level in CURRICULUM:
+            for lesson in level["lessons"]:
+                mode = lesson.get("mode")
+                if mode == "trous":
+                    with self.subTest(trous=lesson["id"]):
+                        self.assertIn("____", lesson.get("starter", ""),
+                                      "un exercice à trous doit contenir ____")
+                elif mode == "debug":
+                    with self.subTest(debug=lesson["id"]):
+                        starter = lesson.get("starter", "")
+                        _, ok, _ = run_exercise(starter, check_code=lesson.get("check"),
+                                                expected_output=lesson.get("expected_output"))
+                        self.assertFalse(ok, "le starter d'un exo débogue doit échouer (bug réel)")
+
+
 if __name__ == "__main__":
     unittest.main()

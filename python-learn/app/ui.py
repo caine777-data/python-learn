@@ -29,7 +29,7 @@ THEMES = {
         "console": "#0e0f14", "fg": "#e6e6e6", "accent": "#4d8bf0",
         "ok": "#52c97a", "err": "#f0635c", "muted": "#9aa0b4",
         "heading": "#7fb0ff", "code": "#ffd479", "code_bg": "#15161c",
-        "sel_fg": "#ffffff",
+        "sel_fg": "#ffffff", "curline": "#23252f",
         "kw": "#c792ea", "builtin": "#82aaff", "num": "#f78c6c",
         "deff": "#ffcb6b", "str": "#c3e88d", "com": "#637777",
     },
@@ -39,7 +39,7 @@ THEMES = {
         "console": "#eef0f4", "fg": "#1c1d22", "accent": "#2f6fe0",
         "ok": "#1f9d57", "err": "#d23b34", "muted": "#5a6172",
         "heading": "#1e4fa3", "code": "#9a6b00", "code_bg": "#eceef2",
-        "sel_fg": "#ffffff",
+        "sel_fg": "#ffffff", "curline": "#eaf0fb",
         "kw": "#8a2fb8", "builtin": "#2f6fe0", "num": "#b5530a",
         "deff": "#9a6b00", "str": "#2e8b3d", "com": "#8a93a3",
     },
@@ -49,12 +49,30 @@ THEMES = {
         "console": "#000000", "fg": "#ffffff", "accent": "#ffd400",
         "ok": "#42ff7a", "err": "#ff5b5b", "muted": "#cccccc",
         "heading": "#ffd400", "code": "#ffd400", "code_bg": "#0c0c0c",
-        "sel_fg": "#000000",
+        "sel_fg": "#000000", "curline": "#181818",
         "kw": "#ff9cf0", "builtin": "#7fd4ff", "num": "#ffb86b",
         "deff": "#ffd400", "str": "#8dff8d", "com": "#bbbbbb",
     },
 }
 THEME_ORDER = ["dark", "light", "contrast"]
+
+
+def _melange(hex1, hex2, t):
+    """Mélange deux couleurs #rrggbb (t=0 -> hex1, t=1 -> hex2)."""
+    def comp(h):
+        h = h.lstrip("#")
+        return [int(h[i:i + 2], 16) for i in (0, 2, 4)]
+    a, b = comp(hex1), comp(hex2)
+    m = [round(a[i] + (b[i] - a[i]) * t) for i in range(3)]
+    return "#%02x%02x%02x" % tuple(max(0, min(255, v)) for v in m)
+
+
+def _eclaircir(hexc, t=0.12):
+    return _melange(hexc, "#ffffff", t)
+
+
+def _assombrir(hexc, t=0.15):
+    return _melange(hexc, "#000000", t)
 
 LEVEL_BADGE_NAMES = {
     "debutant": "Débutant", "intermediaire": "Intermédiaire",
@@ -62,7 +80,9 @@ LEVEL_BADGE_NAMES = {
     "scripts": "Scripts & automatisation", "interfaces": "Interfaces graphiques",
     "web": "Python & le web", "admin": "Administrer son PC",
     "sqlite": "Bases de données (SQLite)", "turtle": "Dessiner (turtle)",
-    "projets": "Projets guidés",
+    "algos": "Algorithmes", "donnees": "Manipuler des données",
+    "tests_tdd": "Tests & TDD",
+    "projets": "Projets guidés", "entrainement": "Entraînement",
 }
 
 
@@ -205,6 +225,9 @@ class PythonLearnApp:
         self.search_query = ""
         self._revision_item = None
         self._ignore_next_select = False
+        self._echecs_session = 0
+        self._tip = None
+        self._tip_row = None
 
         self.lesson_level = {}
         for level in CURRICULUM:
@@ -267,13 +290,15 @@ class PythonLearnApp:
         self._tbtn(toolbar, "tb_doc",
                    lambda: webbrowser.open("https://docs.python.org/fr/3/")).pack(side=tk.LEFT, padx=6, pady=4)
         self._tbtn(toolbar, "tb_brouillon", self._show_sandbox).pack(side=tk.LEFT, pady=4)
+        self._tbtn(toolbar, "tb_reco", self._recommander).pack(side=tk.LEFT, padx=6, pady=4)
+        self._tbtn(toolbar, "tb_examen", self._mode_examen).pack(side=tk.LEFT, pady=4)
         self._tbtn(toolbar, "tb_reset", self._reset_progress).pack(side=tk.RIGHT, padx=4, pady=4)
 
         outer = ttk.PanedWindow(self.root, orient=tk.HORIZONTAL)
         outer.pack(fill=tk.BOTH, expand=True, padx=8, pady=(6, 0))
 
         # --- barre latérale ---
-        side = ttk.Frame(outer, style="Panel.TFrame", width=310)
+        side = ttk.Frame(outer, style="Panel.TFrame", width=340)
         outer.add(side, weight=0)
 
         self.side_header = tk.Label(side, text=self.tr("side_parcours"),
@@ -288,11 +313,14 @@ class PythonLearnApp:
         tree_wrap = ttk.Frame(side, style="Panel.TFrame")
         tree_wrap.pack(fill=tk.BOTH, expand=True, padx=6, pady=4)
         self.tree = ttk.Treeview(tree_wrap, show="tree", selectmode="browse")
+        self.tree.column("#0", width=320, minwidth=220, stretch=True)
         sb = ttk.Scrollbar(tree_wrap, orient="vertical", command=self.tree.yview)
         self.tree.configure(yscrollcommand=sb.set)
         self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         sb.pack(side=tk.RIGHT, fill=tk.Y)
         self.tree.bind("<<TreeviewSelect>>", self._on_select)
+        self.tree.bind("<Motion>", self._tree_tooltip)
+        self.tree.bind("<Leave>", lambda e: self._hide_tooltip())
 
         self.badge_title = tk.Label(side, text=self.tr("side_badges"), anchor="w",
                                     font=(self.body.cget("family"), 10, "bold"))
@@ -356,6 +384,10 @@ class PythonLearnApp:
         self.exo_tabs.pack(fill=tk.X, padx=12, pady=(6, 0))
         self.tab_buttons = []
 
+        self.mode_label = ttk.Label(self.exo_frame, text="", style="Mode.TLabel",
+                                    wraplength=760, justify="left")
+        self.mode_label.pack(anchor="w", padx=12, pady=(4, 0))
+
         self.enonce = ttk.Label(self.exo_frame, text="", style="Muted.TLabel",
                                 wraplength=700, justify="left")
         self.enonce.pack(anchor="w", padx=12, pady=(2, 2))
@@ -372,12 +404,16 @@ class PythonLearnApp:
 
         btns = ttk.Frame(self.exo_frame)
         btns.pack(fill=tk.X, padx=12, pady=6)
-        self._tbtn(btns, "btn_run", self.run).pack(side=tk.LEFT)
-        self._tbtn(btns, "btn_check", self.check).pack(side=tk.LEFT, padx=6)
+        self._tbtn(btns, "btn_run", self.run, style="Primary.TButton").pack(side=tk.LEFT)
+        self._tbtn(btns, "btn_check", self.check, style="Primary.TButton").pack(side=tk.LEFT, padx=6)
         self._tbtn(btns, "btn_step", self._pas_a_pas).pack(side=tk.LEFT)
         self._tbtn(btns, "btn_hint", self.show_hint).pack(side=tk.LEFT, padx=6)
         self._tbtn(btns, "btn_solution", self.show_solution).pack(side=tk.LEFT)
         self._tbtn(btns, "btn_export", self._exporter_py).pack(side=tk.LEFT, padx=6)
+        self._tbtn(btns, "btn_note", self._editer_note).pack(side=tk.LEFT)
+        self.fav_btn = ttk.Button(btns, text=self.tr("fav_non"), width=3,
+                                  command=self._toggle_favori)
+        self.fav_btn.pack(side=tk.LEFT, padx=6)
         ttk.Button(btns, text="↺", width=3, command=self.reset_code).pack(side=tk.LEFT)
         self.feedback = ttk.Label(btns, text="", style="TLabel")
         self.feedback.pack(side=tk.LEFT, padx=10)
@@ -416,16 +452,44 @@ class PythonLearnApp:
         s.configure("Panel.TFrame", background=C["panel"])
         s.configure("TLabel", background=C["bg"], foreground=C["fg"])
         s.configure("Muted.TLabel", background=C["bg"], foreground=C["muted"])
+        s.configure("Mode.TLabel", background=C["bg"], foreground=C["accent"],
+                    font=(self.body.cget("family"), 10, "bold"))
         s.configure("Title.TLabel", background=C["bg"], foreground=C["fg"],
                     font=self.title_font)
         s.configure("Status.TLabel", background=C["panel"], foreground=C["muted"])
+
+        # Boutons plats et modernes, avec effet de survol.
+        survol = _eclaircir(C["panel"], 0.10) if self.theme_name != "light" \
+            else _assombrir(C["panel"], 0.06)
+        s.configure("TButton", font=self.body, relief="flat", borderwidth=0,
+                    padding=(11, 6), background=C["panel"], foreground=C["fg"],
+                    focuscolor=C["panel"], bordercolor=C["panel"],
+                    lightcolor=C["panel"], darkcolor=C["panel"])
+        s.map("TButton",
+              background=[("pressed", _assombrir(C["panel"], 0.10)),
+                          ("active", survol)],
+              foreground=[("disabled", C["muted"])])
+        # Boutons primaires (Exécuter / Vérifier) en couleur d'accent.
+        s.configure("Primary.TButton", background=C["accent"], foreground=C["sel_fg"],
+                    font=(self.body.cget("family"), 10, "bold"), padding=(13, 6),
+                    borderwidth=0, relief="flat", focuscolor=C["accent"],
+                    bordercolor=C["accent"], lightcolor=C["accent"],
+                    darkcolor=C["accent"])
+        s.map("Primary.TButton",
+              background=[("pressed", _assombrir(C["accent"], 0.22)),
+                          ("active", _assombrir(C["accent"], 0.10))])
         s.configure("TButton", font=self.body)
         s.configure("TEntry", fieldbackground=C["editor"], foreground=C["fg"])
         s.configure("Treeview", background=C["panel"], fieldbackground=C["panel"],
-                    foreground=C["fg"], rowheight=26, borderwidth=0)
+                    foreground=C["fg"], rowheight=29, borderwidth=0)
         s.map("Treeview", background=[("selected", C["accent"])],
               foreground=[("selected", C["sel_fg"])])
-        s.configure("TProgressbar", background=C["accent"], troughcolor=C["bg"])
+        s.configure("TProgressbar", background=C["accent"], troughcolor=C["bg"],
+                    borderwidth=0, thickness=10, bordercolor=C["bg"],
+                    lightcolor=C["accent"], darkcolor=C["accent"])
+        s.configure("Niv.Horizontal.TProgressbar", background=C["ok"],
+                    troughcolor=C["panel"], borderwidth=0, thickness=12,
+                    lightcolor=C["ok"], darkcolor=C["ok"])
 
         self.content.configure(bg=C["bg"], fg=C["fg"], insertbackground=C["fg"])
         self.console.configure(bg=C["console"], fg=C["fg"], insertbackground=C["fg"])
@@ -505,6 +569,32 @@ class PythonLearnApp:
         self.search_query = self.search_var.get().strip().lower()
         self._populate_tree()
 
+    def _tree_tooltip(self, e):
+        row = self.tree.identify_row(e.y)
+        if not row:
+            self._hide_tooltip()
+            return
+        if row == self._tip_row:
+            return
+        self._hide_tooltip()
+        self._tip_row = row
+        texte = self.tree.item(row, "text").strip()
+        if not texte:
+            return
+        self._tip = tk.Toplevel(self.tree)
+        self._tip.overrideredirect(True)
+        self._tip.attributes("-topmost", True)
+        self._tip.geometry(f"+{e.x_root + 16}+{e.y_root + 12}")
+        tk.Label(self._tip, text=texte, bg=self.C["panel"], fg=self.C["fg"],
+                 relief="solid", borderwidth=1, padx=6, pady=2,
+                 font=self.body).pack()
+
+    def _hide_tooltip(self):
+        if self._tip:
+            self._tip.destroy()
+            self._tip = None
+        self._tip_row = None
+
     def _populate_tree(self):
         self.tree.delete(*self.tree.get_children())
         self.item_to_lesson = {}
@@ -523,10 +613,30 @@ class PythonLearnApp:
                 text=f"  {level['title']}  ({done}/{total}){badge}")
             for lesson in lessons:
                 d = lesson_done(lesson, self.data["completed"])
-                icone = "✓" if d else ("?" if lesson.get("type") == "quiz" else "•")
-                node = self.tree.insert(parent, "end", text=f"  {icone} {lesson['title']}",
+                if d:
+                    icone = "✓"
+                elif lesson.get("type") == "quiz":
+                    icone = "?"
+                elif lesson.get("mode") == "debug":
+                    icone = "🐞"
+                elif lesson.get("mode") == "trous":
+                    icone = "✏"
+                else:
+                    icone = "•"
+                suffixe = self._suffixe_lecon(lesson)
+                node = self.tree.insert(parent, "end",
+                                        text=f"  {icone} {lesson['title']}{suffixe}",
                                         tags=("done",) if d else ())
                 self.item_to_lesson[node] = lesson
+
+    def _suffixe_lecon(self, lesson):
+        """Petits marqueurs en fin de titre : ★ favori, 📝 note."""
+        suffixe = ""
+        if lesson.get("id") in self.data["favoris"]:
+            suffixe += "  ★"
+        if lesson.get("id") in self.data["notes"]:
+            suffixe += " 📝"
+        return suffixe
 
     def _refresh_badges(self):
         C = self.C
@@ -561,7 +671,9 @@ class PythonLearnApp:
         self.current = lesson
         self.exo_index = 0
         self._revision_item = None
+        self._echecs_session = 0
         self.lesson_title.configure(text=lesson["title"])
+        self._maj_favori_btn()
         self._render_content(lesson.get("content", ""))
         if lesson.get("type") == "quiz":
             self.exo_frame.pack_forget()
@@ -572,6 +684,71 @@ class PythonLearnApp:
             self.exo_frame.pack(fill=tk.BOTH, expand=True)
             self._build_exo_tabs()
             self._load_exercice(0)
+
+    def _maj_favori_btn(self):
+        if not self.current:
+            return
+        actif = self.current.get("id") in self.data["favoris"]
+        self.fav_btn.configure(text=self.tr("fav_oui" if actif else "fav_non"))
+
+    def _toggle_favori(self):
+        if not self.current:
+            return
+        actif = prog.toggle_favori(self.data, self.current["id"])
+        self.fav_btn.configure(text=self.tr("fav_oui" if actif else "fav_non"))
+        self._populate_tree()
+
+    def _mode_examen(self):
+        quizzes = [lesson for level in CURRICULUM for lesson in level["lessons"]
+                   if lesson.get("type") == "quiz"]
+        if not quizzes:
+            return
+        questions = random.sample(quizzes, min(10, len(quizzes)))
+        ExamWindow(self.root, self, questions, self.C)
+
+    def _editer_note(self):
+        if not self.current:
+            return
+        C = self.C
+        cid = self.current["id"]
+        win = tk.Toplevel(self.root)
+        win.title(self.tr("note_title"))
+        win.configure(bg=C["bg"])
+        win.geometry("460x320")
+        tk.Label(win, text=self.tr("note_intro"), bg=C["bg"], fg=C["muted"],
+                 anchor="w").pack(fill=tk.X, padx=12, pady=(10, 4))
+        txt = tk.Text(win, wrap="word", relief="flat", font=self.body,
+                      bg=C["console"], fg=C["fg"], padx=8, pady=6)
+        txt.pack(fill=tk.BOTH, expand=True, padx=12)
+        txt.insert("1.0", self.data["notes"].get(cid, ""))
+
+        def enregistrer():
+            prog.set_note(self.data, cid, txt.get("1.0", "end").strip())
+            self._populate_tree()
+            win.destroy()
+        ttk.Button(win, text=self.tr("note_save"),
+                   command=enregistrer).pack(pady=10)
+        txt.focus_set()
+
+    def _ordre_item_ids(self):
+        ids = []
+        for level in CURRICULUM:
+            for lesson in level["lessons"]:
+                ids.extend(lesson_items(lesson))
+        return ids
+
+    def _recommander(self):
+        dus = stats.dus(self.data["srs"], date.today(), self.data["completed"])
+        action, item_id = stats.prochaine_action(
+            self._ordre_item_ids(), self.data["completed"], dus)
+        if action == "termine":
+            messagebox.showinfo(self.tr("reco_title"), self.tr("reco_termine"))
+            return
+        self._charger_item(item_id)
+        cle = "reco_revision" if action == "revision" else "reco_nouvelle"
+        if action == "revision":
+            self._revision_item = item_id
+        self.feedback.configure(text=self.tr(cle), foreground=self.C["accent"])
 
     def _build_exo_tabs(self):
         for b in self.tab_buttons:
@@ -594,6 +771,13 @@ class PythonLearnApp:
         exo = get_exercice(self.current, index)
         item_id = lesson_items(self.current)[index]
         self.enonce.configure(text=exo.get("prompt", "") if exercice_count(self.current) > 1 else "")
+        mode = exo.get("mode") or self.current.get("mode")
+        if mode == "debug":
+            self.mode_label.configure(text=self.tr("mode_debug"))
+        elif mode == "trous":
+            self.mode_label.configure(text=self.tr("mode_trous"))
+        else:
+            self.mode_label.configure(text="")
         saved = self.data["code"].get(item_id)
         self.editor.set_text(saved if saved is not None else exo.get("starter", ""))
         self._hints = hints_for(self.current, exo if exercice_count(self.current) > 1 else None)
@@ -660,8 +844,17 @@ class PythonLearnApp:
     # ---------------------------------------------------------- bandeau succès
     def _show_banner(self, text, color):
         self.banner.configure(text=text, bg=color, fg="#ffffff")
-        self.banner.place(relx=0.5, rely=0.0, anchor="n", relwidth=0.7)
-        self.root.after(2400, self._hide_banner)
+        self._banner_anim(0)
+        self.root.after(2600, self._hide_banner)
+
+    def _banner_anim(self, etape):
+        """Petit glissement d'entrée de la bannière (8 images)."""
+        n = 8
+        if etape > n:
+            return
+        rely = -0.06 + 0.06 * (etape / n)
+        self.banner.place(relx=0.5, rely=rely, anchor="n", relwidth=0.7)
+        self.root.after(16, lambda: self._banner_anim(etape + 1))
 
     def _hide_banner(self):
         self.banner.place_forget()
@@ -701,6 +894,11 @@ class PythonLearnApp:
         from app.runner import run_exercise
         exo = get_exercice(self.current, self.exo_index)
         self._clear_console()
+        mode = exo.get("mode") or self.current.get("mode")
+        if mode == "trous" and "____" in self.editor.get():
+            self._write(self.tr("trous_restants") + "\n", "muted")
+            self.feedback.configure(text=self.tr("fb_fail"), foreground=self.C["err"])
+            return
         result, success, message = run_exercise(
             self.editor.get(), check_code=exo.get("check"),
             expected_output=exo.get("expected_output"), stdin_lines=exo.get("stdin"))
@@ -710,6 +908,7 @@ class PythonLearnApp:
         if success:
             self._write("\n" + message + "\n", "ok")
             self.feedback.configure(text=self.tr("fb_ok"), foreground=self.C["ok"])
+            self._echecs_session = 0
             self._mark_done(item_id)
             self._apres_reussite(item_id)
             self._show_banner(self.tr("banner_exo"), self.C["ok"])
@@ -726,6 +925,10 @@ class PythonLearnApp:
                 prog.save_progress(self.data)
                 self._revision_item = None
                 self._refresh_status()
+            prog.enregistrer_echec(self.data, item_id)
+            self._echecs_session += 1
+            if self._echecs_session >= 2 and self._hints:
+                self._write("\n" + self.tr("nudge_indice") + "\n", "hint")
             self.feedback.configure(text=self.tr("fb_fail"), foreground=self.C["err"])
 
     def _apres_reussite(self, item_id):
@@ -889,8 +1092,9 @@ class PythonLearnApp:
         obj = self.data.get("objectif_quotidien", 3)
         n_dus = len(stats.dus(self.data["srs"], today, set(self.data["completed"])))
         cible = "✓" if auj >= obj else f"{auj}/{obj}"
+        niv = stats.niveau(stats.xp_total(self.data["completed"], self.data["badges"]))["niveau"]
         self.status.configure(text=self.tr(
-            "status", done=done, total=total, pct=pct,
+            "status", niv=niv, done=done, total=total, pct=pct,
             b=len(self.data["badges"]), n=len(CURRICULUM), s=s, cible=cible, dus=n_dus))
 
     def _reset_progress(self):
@@ -930,6 +1134,12 @@ class PythonLearnApp:
         win.geometry("560x520")
         tk.Label(win, text=self.tr("gl_title"), bg=C["panel"], fg=C["accent"],
                  font=self.title_font).pack(pady=(12, 6))
+        outils = ttk.Frame(win, style="Panel.TFrame")
+        outils.pack(pady=(0, 6))
+        ttk.Button(outils, text=self.tr("gl_cards"),
+                   command=self._ouvrir_flashcards).pack(side=tk.LEFT, padx=4)
+        ttk.Button(outils, text=self.tr("gl_cheatsheet"),
+                   command=self._ouvrir_antiseche).pack(side=tk.LEFT, padx=4)
         var = tk.StringVar()
         entry = tk.Entry(win, textvariable=var, bg=C["editor"], fg=C["fg"],
                          insertbackground=C["fg"], relief="flat")
@@ -951,6 +1161,23 @@ class PythonLearnApp:
             txt.configure(state="disabled")
         var.trace_add("write", remplir)
         remplir()
+
+    def _ouvrir_antiseche(self):
+        from content.cheatsheet import CHEATSHEET
+        html = stats.cheatsheet_html(self.tr("cheat_title"), CHEATSHEET)
+        try:
+            fichier = prog.DATA_DIR / "antiseche.html"
+            prog.DATA_DIR.mkdir(parents=True, exist_ok=True)
+            fichier.write_text(html, encoding="utf-8")
+            webbrowser.open(fichier.as_uri())
+        except Exception:
+            messagebox.showinfo(self.tr("cheat_title"), self.tr("cheat_fail"))
+
+    def _ouvrir_flashcards(self):
+        cartes = list(GLOSSAIRE)
+        if not cartes:
+            return
+        FlashcardWindow(self.root, self, cartes, self.C)
 
     def _revision(self):
         today = date.today()
@@ -995,6 +1222,51 @@ class PythonLearnApp:
             self._load_exercice(int(item_id.split("#")[1]))
         self._revision_item = item_id
 
+    def _exporter_progression(self):
+        chemin = filedialog.asksaveasfilename(
+            defaultextension=".json", filetypes=[("JSON", "*.json")],
+            initialfile="python-learn-progression.json")
+        if not chemin:
+            return
+        try:
+            pathlib.Path(chemin).write_text(prog.exporter_json(self.data),
+                                            encoding="utf-8")
+            messagebox.showinfo(self.tr("st_title").strip("📊 "),
+                                self.tr("dlg_export_ok"))
+        except Exception:
+            messagebox.showinfo(self.tr("dlg_export_title"), self.tr("dlg_export_fail"))
+
+    def _importer_progression(self, win=None):
+        chemin = filedialog.askopenfilename(filetypes=[("JSON", "*.json")])
+        if not chemin:
+            return
+        try:
+            texte = pathlib.Path(chemin).read_text(encoding="utf-8")
+            nouveau = prog.importer_json(texte)
+        except Exception:
+            messagebox.showinfo(self.tr("st_title").strip("📊 "),
+                                self.tr("dlg_import_err"))
+            return
+        self.data = nouveau
+        self.theme_name = self.data.get("theme", self.theme_name)
+        if self.theme_name not in THEMES:
+            self.theme_name = "dark"
+        self.C = THEMES[self.theme_name]
+        self.lang = self.data.get("langue", self.lang)
+        if self.lang not in LANGUES:
+            self.lang = "fr"
+        self.tr.set(self.lang)
+        prog.save_progress(self.data)
+        self.apply_theme()
+        self._apply_language()
+        self._populate_tree()
+        self._refresh_badges()
+        self._refresh_status()
+        self._select_first_incomplete()
+        messagebox.showinfo(self.tr("st_title").strip("📊 "), self.tr("dlg_import_ok"))
+        if win is not None:
+            win.destroy()
+
     def _generer_certificat(self, level_id):
         nom = self.data.get("nom") or ""
         if not nom:
@@ -1029,13 +1301,25 @@ class PythonLearnApp:
         auj = self.data["historique"].get(today.isoformat(), 0)
         obj = self.data.get("objectif_quotidien", 3)
         n_dus = len(stats.dus(self.data["srs"], today, set(self.data["completed"])))
-        for t in [self.tr("st_streak", n=s),
+        xp = stats.xp_total(self.data["completed"], self.data["badges"])
+        niv = stats.niveau(xp)
+        hebdo = stats.cette_semaine(self.data["historique"], today)
+        obj_h = self.data.get("objectif_hebdo", 15)
+        for t in [self.tr("st_niveau", niv=niv["niveau"], dans=niv["dans_niveau"],
+                          pour=niv["pour_suivant"]),
+                  self.tr("st_streak", n=s),
                   self.tr("st_record", n=record),
                   self.tr("st_total", n=total_faits),
                   self.tr("st_today", auj=auj, obj=obj),
+                  self.tr("st_hebdo", n=hebdo, obj=obj_h),
                   self.tr("st_due", n=n_dus)]:
             tk.Label(win, text=t, bg=C["bg"], fg=C["fg"], anchor="w").pack(
                 fill=tk.X, padx=28, pady=2)
+
+        nivbar = ttk.Progressbar(win, style="Niv.Horizontal.TProgressbar",
+                                 maximum=niv["pour_suivant"], length=320)
+        nivbar.pack(pady=(2, 8))
+        nivbar["value"] = niv["dans_niveau"]
 
         objrow = tk.Frame(win, bg=C["bg"])
         objrow.pack(pady=8)
@@ -1052,6 +1336,28 @@ class PythonLearnApp:
             self._refresh_status()
         tk.Button(objrow, text="–", command=lambda: maj(-1)).pack(side=tk.LEFT)
         tk.Button(objrow, text="+", command=lambda: maj(1)).pack(side=tk.LEFT, padx=4)
+
+        hrow = tk.Frame(win, bg=C["bg"])
+        hrow.pack(pady=(0, 4))
+        tk.Label(hrow, text=self.tr("st_hebdo_label"), bg=C["bg"],
+                 fg=C["muted"]).pack(side=tk.LEFT)
+        objh_var = tk.IntVar(value=obj_h)
+        tk.Label(hrow, textvariable=objh_var, bg=C["bg"], fg=C["fg"],
+                 width=3).pack(side=tk.LEFT, padx=6)
+
+        def maj_h(delta):
+            n = max(1, objh_var.get() + delta)
+            objh_var.set(n)
+            prog.set_objectif_hebdo(self.data, n)
+        tk.Button(hrow, text="–", command=lambda: maj_h(-1)).pack(side=tk.LEFT)
+        tk.Button(hrow, text="+", command=lambda: maj_h(1)).pack(side=tk.LEFT, padx=4)
+
+        iorow = tk.Frame(win, bg=C["bg"])
+        iorow.pack(pady=(2, 6))
+        ttk.Button(iorow, text=self.tr("st_export"),
+                   command=self._exporter_progression).pack(side=tk.LEFT, padx=4)
+        ttk.Button(iorow, text=self.tr("st_import"),
+                   command=lambda: self._importer_progression(win)).pack(side=tk.LEFT, padx=4)
 
         tk.Label(win, text=self.tr("st_7days"), bg=C["bg"], fg=C["muted"]).pack(pady=(8, 0))
         cv = tk.Canvas(win, width=470, height=150, bg=C["panel"], highlightthickness=0)
@@ -1134,8 +1440,230 @@ class PythonLearnApp:
         ed.focus_editor()
 
 
+class ExamWindow(tk.Toplevel):
+    """Examen chronométré : enchaîne des questions de quiz et affiche le score."""
+    DUREE = 300  # secondes (5 minutes)
+
+    def __init__(self, master, app, questions, C):
+        super().__init__(master)
+        self.app = app
+        self.tr = app.tr
+        self.questions = questions
+        self.C = C
+        self.i = 0
+        self.bons = 0
+        self.valide = False
+        self.restant = self.DUREE
+        self.title(self.tr("ex_title"))
+        self.configure(bg=C["bg"])
+        self.geometry("560x440")
+
+        barre = tk.Frame(self, bg=C["bg"])
+        barre.pack(fill=tk.X, padx=16, pady=(12, 4))
+        self.compteur = tk.Label(barre, bg=C["bg"], fg=C["muted"],
+                                 font=(app.body.cget("family"), 10, "bold"))
+        self.compteur.pack(side=tk.LEFT)
+        self.chrono = tk.Label(barre, bg=C["bg"], fg=C["accent"],
+                               font=(app.body.cget("family"), 11, "bold"))
+        self.chrono.pack(side=tk.RIGHT)
+
+        self.q_label = tk.Label(self, bg=C["bg"], fg=C["fg"], wraplength=520,
+                                justify="left", font=(app.body.cget("family"), 12))
+        self.q_label.pack(anchor="w", padx=16, pady=(8, 6))
+        self.var = tk.IntVar(value=-1)
+        self.opts_frame = tk.Frame(self, bg=C["bg"])
+        self.opts_frame.pack(fill=tk.X, padx=16)
+        self.retour = tk.Label(self, bg=C["bg"], fg=C["muted"], wraplength=520,
+                               justify="left")
+        self.retour.pack(anchor="w", padx=16, pady=6)
+
+        nav = tk.Frame(self, bg=C["bg"])
+        nav.pack(side=tk.BOTTOM, pady=12)
+        self.btn_valider = ttk.Button(nav, text=self.tr("ex_valider"),
+                                      command=self._valider)
+        self.btn_valider.pack(side=tk.LEFT, padx=4)
+        self.btn_suivant = ttk.Button(nav, text=self.tr("ex_suivant"),
+                                      command=self._suivant)
+
+        self._afficher()
+        self._tic()
+
+    def _tic(self):
+        m, s = divmod(max(0, self.restant), 60)
+        self.chrono.configure(text=self.tr("ex_time", m=m, s=s))
+        if self.restant <= 0:
+            self._terminer(temps_ecoule=True)
+            return
+        self.restant -= 1
+        self._after_id = self.after(1000, self._tic)
+
+    def _afficher(self):
+        q = self.questions[self.i]
+        self.valide = False
+        self.var.set(-1)
+        self.retour.configure(text="")
+        self.compteur.configure(text=self.tr("ex_q", i=self.i + 1, n=len(self.questions)))
+        self.q_label.configure(text=q["question"])
+        for w in self.opts_frame.winfo_children():
+            w.destroy()
+        for idx, opt in enumerate(q["options"]):
+            tk.Radiobutton(self.opts_frame, text=opt, variable=self.var, value=idx,
+                           bg=self.C["bg"], fg=self.C["fg"], selectcolor=self.C["panel"],
+                           activebackground=self.C["bg"], anchor="w",
+                           font=self.app.body).pack(fill=tk.X, anchor="w")
+        self.btn_suivant.pack_forget()
+        self.btn_valider.pack(side=tk.LEFT, padx=4)
+
+    def _valider(self):
+        if self.var.get() < 0 or self.valide:
+            return
+        self.valide = True
+        q = self.questions[self.i]
+        if self.var.get() == q["answer"]:
+            self.bons += 1
+            self.retour.configure(text=self.tr("quiz_good") + q.get("explanation", ""),
+                                  fg=self.C["ok"])
+        else:
+            bonne = q["options"][q["answer"]]
+            self.retour.configure(text=f"{self.tr('quiz_bad')}  ✓ {bonne}",
+                                  fg=self.C["err"])
+        self.btn_valider.pack_forget()
+        self.btn_suivant.pack(side=tk.LEFT, padx=4)
+
+    def _suivant(self):
+        if self.i + 1 >= len(self.questions):
+            self._terminer()
+        else:
+            self.i += 1
+            self._afficher()
+
+    def _terminer(self, temps_ecoule=False):
+        try:
+            self.after_cancel(self._after_id)
+        except Exception:
+            pass
+        for w in list(self.winfo_children()):
+            w.destroy()
+        from datetime import date as _date
+        prog.enregistrer_activite(self.app.data, _date.today().isoformat())
+        self.app._refresh_status()
+        titre = self.tr("ex_temps") if temps_ecoule else self.tr("ex_termine")
+        tk.Label(self, text=titre, bg=self.C["bg"], fg=self.C["accent"],
+                 font=(self.app.body.cget("family"), 16, "bold")).pack(pady=(40, 10))
+        tk.Label(self, text=self.tr("ex_score", bons=self.bons, total=len(self.questions)),
+                 bg=self.C["bg"], fg=self.C["fg"],
+                 font=(self.app.body.cget("family"), 22, "bold")).pack(pady=10)
+        ttk.Button(self, text=self.tr("ex_fermer"), command=self.destroy).pack(pady=16)
+
+
+class FlashcardWindow(tk.Toplevel):
+    """Révision en cartes : recto (terme) / verso (définition)."""
+
+    def __init__(self, master, app, cartes, C):
+        super().__init__(master)
+        self.app = app
+        self.tr = app.tr
+        self.C = C
+        self.cartes = list(cartes)
+        random.shuffle(self.cartes)
+        self.i = 0
+        self.face = False  # False = recto, True = verso
+        self.title(self.tr("fc_title"))
+        self.configure(bg=C["bg"])
+        self.geometry("520x420")
+
+        self.compteur = tk.Label(self, bg=C["bg"], fg=C["muted"],
+                                 font=(app.body.cget("family"), 10, "bold"))
+        self.compteur.pack(pady=(12, 4))
+        self.face_label = tk.Label(self, bg=C["bg"], fg=C["accent"],
+                                   font=(app.body.cget("family"), 10))
+        self.face_label.pack()
+
+        self.carte = tk.Label(self, bg=C["panel"], fg=C["fg"], wraplength=440,
+                              justify="center", font=(app.body.cget("family"), 15),
+                              width=44, height=8)
+        self.carte.pack(fill=tk.BOTH, expand=True, padx=20, pady=12)
+        self.carte.bind("<Button-1>", lambda e: self._retourner())
+
+        nav = tk.Frame(self, bg=C["bg"])
+        nav.pack(pady=10)
+        self.btn_flip = ttk.Button(nav, text=self.tr("fc_flip"), command=self._retourner)
+        self.btn_flip.pack(side=tk.LEFT, padx=4)
+        self.btn_next = ttk.Button(nav, text=self.tr("fc_next"), command=self._suivant)
+        self.btn_next.pack(side=tk.LEFT, padx=4)
+        self._afficher()
+
+    def _afficher(self):
+        self.face = False
+        terme, _ = self.cartes[self.i]
+        self.compteur.configure(text=self.tr("fc_progress", i=self.i + 1, n=len(self.cartes)))
+        self.face_label.configure(text=self.tr("fc_recto"))
+        self.carte.configure(text=terme)
+
+    def _retourner(self):
+        self.face = not self.face
+        terme, definition = self.cartes[self.i]
+        self.face_label.configure(text=self.tr("fc_verso" if self.face else "fc_recto"))
+        self.carte.configure(text=definition if self.face else terme)
+
+    def _suivant(self):
+        if self.i + 1 >= len(self.cartes):
+            self._terminer()
+        else:
+            self.i += 1
+            self._afficher()
+
+    def _terminer(self):
+        for w in list(self.winfo_children()):
+            w.destroy()
+        tk.Label(self, text=self.tr("fc_done"), bg=self.C["bg"], fg=self.C["accent"],
+                 font=(self.app.body.cget("family"), 18, "bold")).pack(pady=(60, 16))
+        nav = tk.Frame(self, bg=self.C["bg"])
+        nav.pack()
+        ttk.Button(nav, text=self.tr("fc_replay"), command=self._rejouer).pack(side=tk.LEFT, padx=4)
+        ttk.Button(nav, text=self.tr("fc_close"), command=self.destroy).pack(side=tk.LEFT, padx=4)
+
+    def _rejouer(self):
+        self.destroy()
+        FlashcardWindow(self.master, self.app, self.cartes, self.C)
+
+
+def _splash(root):
+    """Petit écran d'accueil (avec fondu) affiché le temps du démarrage."""
+    C = THEMES["dark"]
+    sp = tk.Toplevel(root)
+    sp.overrideredirect(True)
+    w, h = 440, 260
+    sw, sh = sp.winfo_screenwidth(), sp.winfo_screenheight()
+    sp.geometry(f"{w}x{h}+{(sw - w) // 2}+{(sh - h) // 2}")
+    sp.configure(bg=C["panel"])
+    # liseré d'accent en haut
+    tk.Frame(sp, bg=C["accent"], height=5).pack(fill=tk.X, side=tk.TOP)
+    tk.Label(sp, text="🐍", bg=C["panel"], font=("", 60)).pack(pady=(34, 2))
+    tk.Label(sp, text="PythonLearn", bg=C["panel"], fg=C["accent"],
+             font=("", 25, "bold")).pack()
+    tk.Label(sp, text="Apprendre Python, pas à pas", bg=C["panel"],
+             fg=C["muted"]).pack(pady=(2, 0))
+    try:
+        sp.attributes("-topmost", True)
+        sp.attributes("-alpha", 0.0)
+    except tk.TclError:
+        pass
+
+    def _fondu(a=0.0):
+        try:
+            sp.attributes("-alpha", min(1.0, a))
+        except tk.TclError:
+            return
+        if a < 1.0:
+            sp.after(20, lambda: _fondu(a + 0.12))
+    _fondu()
+    return sp
+
+
 def launch():
     root = tk.Tk()
+    root.withdraw()
     if ICON_B64:
         try:
             icon = tk.PhotoImage(data=ICON_B64)
@@ -1143,5 +1671,21 @@ def launch():
             root._icon_ref = icon
         except Exception:
             pass
+    sp = _splash(root)
+    root.update()
     PythonLearnApp(root)
+
+    def _demarrer():
+        def _sortie(a=1.0):
+            try:
+                sp.attributes("-alpha", max(0.0, a))
+            except tk.TclError:
+                a = 0
+            if a > 0:
+                sp.after(18, lambda: _sortie(a - 0.15))
+            else:
+                sp.destroy()
+                root.deiconify()
+        _sortie()
+    root.after(1100, _demarrer)
     root.mainloop()

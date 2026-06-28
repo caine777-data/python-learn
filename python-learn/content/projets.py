@@ -2,7 +2,7 @@
 
 LEVEL = {
     "id": "projets",
-    "title": "11 · Projets guidés",
+    "title": "14 · Projets guidés",
     "lessons": [
         {
             "id": "proj-pendu",

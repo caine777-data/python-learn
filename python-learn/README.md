@@ -5,27 +5,35 @@ débutant au niveau expert**. Chaque leçon mêle une explication claire et
 un exercice que l'on résout dans un éditeur intégré : le code s'exécute
 pour de vrai et la réussite est vérifiée automatiquement.
 
-- ✅ Parcours structuré : **11 parcours, 105 exercices**, du tout débutant aux projets concrets
+- ✅ Parcours structuré : **15 parcours, 132 exercices**, du tout débutant aux projets concrets
 - ✅ Éditeur intégré avec **coloration syntaxique**, **numéros de ligne** et **exécution réelle**
 - ✅ **Syntaxe vérifiée en temps réel** (ligne fautive soulignée), **autocomplétion** (Ctrl+Espace)
 - ✅ **Exécution pas-à-pas** : avance ligne par ligne en voyant les variables et la sortie évoluer
 - ✅ **Export** du code d'un exercice en fichier `.py`
+- ✅ Confort visuel : **surlignage de la ligne courante**, titres de leçons complets au survol, splash screen en fondu
+- ✅ Interface soignée : **boutons d'action en couleur d'accent** avec effet de survol, **bannière de réussite animée**, barres de progression (global + niveau)
 - ✅ **Vérification automatique** des exercices, avec **messages d'erreur expliqués en français**
 - ✅ **Inspecteur de variables** après exécution + **comparaison attendu/obtenu** en cas d'échec
 - ✅ **Bac à sable** libre (« Brouillon ») pour expérimenter sans exercice
 - ✅ **Indices progressifs** (dévoilés un par un) avant de révéler la solution
 - ✅ **Quiz (QCM) à la fin de chaque parcours** et **projets guidés multi-étapes**
+- ✅ Exercices variés : à compléter (**trous**) et à réparer (**débogue ce code**), en plus des exercices classiques
 - ✅ **3 thèmes** (sombre / clair / contraste élevé) + **zoom** du texte
 - ✅ **Glossaire** intégré, **mode révision**, **recherche** de leçon, lien vers la doc Python
+- ✅ **Antisèche imprimable** (mémo de syntaxe HTML) et **flashcards** de révision
 - ✅ **Suivi de progression** (barre + compteurs par parcours) et **badges** par parcours
 - ✅ **Série de jours (streak)**, objectif quotidien et **statistiques** (graphique 7 jours)
+- ✅ **XP & niveaux**, **objectif hebdomadaire**, et **recommandation adaptative** (« 🧭 Et après ? »)
+- ✅ **Notes personnelles** et **favoris** par leçon (marqueurs ★ / 📝 dans la liste)
+- ✅ **Mode examen chronométré** (questions au hasard, 5 minutes, score final)
+- ✅ **Export / import de la progression** en JSON (pour changer de machine)
 - ✅ **Révision espacée** : les exercices reviennent à intervalles croissants (1, 3, 7, 16… jours)
 - ✅ **Certificat** de fin de parcours (HTML imprimable, à ton nom)
 - ✅ Confort d'édition : auto-fermeture des parenthèses, `Ctrl+/` pour commenter, indentation de bloc
 - ✅ **Interface bilingue FR / EN** (bascule en un clic ; le contenu des leçons reste en français)
 - ✅ **Zéro dépendance** pour l'utilisateur (tout est en bibliothèque standard)
 - ✅ **Bac à sable sécurisé** : le « Brouillon » limite les modules importables et l'accès fichier/système
-- ✅ **Tests automatisés** du curriculum (les 105 solutions sont vérifiées par la CI)
+- ✅ **Tests automatisés** du curriculum (les 132 solutions sont vérifiées par la CI)
 - ✅ Exécutables Windows / macOS / Linux générés **automatiquement** par GitHub Actions
 
 |  Thème sombre  |  Thème clair  |  Quiz (contraste élevé)  |
@@ -46,6 +54,24 @@ L'**exécution pas-à-pas** (ligne courante surlignée, variables et sortie à c
 L'**interface bilingue** — ici en anglais (le contenu des leçons reste en français) :
 
 ![anglais](assets/screenshot-en.png)
+
+Le mode **« débogue ce code »** (bandeau dédié, bug réel à réparer) :
+
+![débogue](assets/screenshot-debug.png)
+
+Le parcours **Algorithmes & structures de données** (ici la recherche dichotomique) :
+
+![algorithmes](assets/screenshot-algos.png)
+
+Le **mode examen** chronométré (questions au hasard, score final) :
+
+![examen](assets/screenshot-exam.png)
+
+Les **flashcards** de révision (recto terme / verso définition) et l'**antisèche** imprimable :
+
+![flashcards](assets/screenshot-flashcards.png)
+
+![antisèche](assets/screenshot-cheatsheet.png)
 
 ## ⌨️ Raccourcis
 
@@ -77,9 +103,16 @@ parcours est entièrement consacré aux **projets guidés**.
 9. **Bases de données (SQLite)** — créer une table, INSERT, SELECT, WHERE, UPDATE/DELETE, agrégats + quiz.
 10. **Dessiner (turtle)** — polygones, motifs, spirales, coordonnées, rosace + quiz.
 
+**Approfondissement**
+
+11. **Algorithmes & structures de données** — recherche linéaire et dichotomique, tri à bulles, récursivité (factorielle, Fibonacci), pile (LIFO), file (FIFO) + quiz.
+12. **Manipuler des données** — `statistics` (moyenne, médiane), `Counter`, `defaultdict`, lire un CSV, agréger des données + quiz.
+13. **Tests & TDD** — `assert`, lire un test comme une spécification, cas limites, cycle rouge-vert-refactor, écrire ses propres tests + quiz.
+
 **Projets guidés** (multi-étapes, validés exercice par exercice)
 
-11. **Projets guidés** — le **Pendu**, une **liste de tâches**, un **bloc-notes** Tkinter, un **convertisseur de devises**, le **Jeu de la vie** de Conway, et le **hachage sécurisé** d'un mot de passe.
+14. **Projets guidés** — le **Pendu**, une **liste de tâches**, un **bloc-notes** Tkinter, un **convertisseur de devises**, le **Jeu de la vie** de Conway, et le **hachage sécurisé** d'un mot de passe.
+15. **Entraînement (débogage & trous)** — réparer des bugs classiques (borne, condition inversée, IndexError) et compléter du code à trous.
 
 ---
 
@@ -129,6 +162,11 @@ L'exécutable apparaît dans le dossier `dist/`.
 > ℹ️ Sous Windows, SmartScreen peut afficher un avertissement pour un
 > exécutable non signé : *Informations complémentaires → Exécuter quand
 > même*. C'est normal pour une application personnelle non signée.
+
+Pour aller plus loin (installateur Windows via **Inno Setup**, publication sur
+**GitHub Releases**, signature de code, `.dmg` macOS), voir le guide détaillé
+**[DIFFUSION.md](DIFFUSION.md)**. Le script `packaging/installer.iss` est prêt
+à l'emploi, et le workflow `build.yml` construit aussi l'installateur Windows.
 
 ---
 

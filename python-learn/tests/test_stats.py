@@ -47,6 +47,41 @@ class TestStats(unittest.TestCase):
         self.assertIn("Débutant", html)
         self.assertIn("<!DOCTYPE html>", html)
 
+    def test_xp_et_niveau(self):
+        self.assertEqual(stats.xp_total([], []), 0)
+        self.assertEqual(stats.xp_total(["a", "b"], ["x"]), 10 * 2 + 50)
+        n = stats.niveau(0)
+        self.assertEqual(n["niveau"], 1)
+        n = stats.niveau(250)
+        self.assertEqual(n["niveau"], 3)
+        self.assertEqual(n["dans_niveau"], 50)
+
+    def test_cette_semaine(self):
+        # mercredi 2026-06-24 ; lundi de la semaine = 2026-06-22
+        today = datetime.date(2026, 6, 24)
+        hist = {"2026-06-22": 2, "2026-06-24": 3, "2026-06-21": 9}  # 21 = dimanche d'avant
+        self.assertEqual(stats.cette_semaine(hist, today), 5)
+
+    def test_prochaine_action(self):
+        ordre = ["a", "b", "c", "d"]
+        # révision prioritaire
+        self.assertEqual(stats.prochaine_action(ordre, ["a"], ["b"]),
+                         ("revision", "b"))
+        # sinon première non faite
+        self.assertEqual(stats.prochaine_action(ordre, ["a"], []),
+                         ("nouvelle", "b"))
+        # tout fait
+        self.assertEqual(stats.prochaine_action(ordre, ordre, []),
+                         ("termine", None))
+
+    def test_cheatsheet_html(self):
+        sections = [("Bases", [("x = 1", "entier"), ('s = "hi"', "chaîne")])]
+        html = stats.cheatsheet_html("Antisèche", sections)
+        self.assertIn("<!DOCTYPE html>", html)
+        self.assertIn("Bases", html)
+        self.assertIn("&quot;", html)          # guillemets échappés
+        self.assertEqual(html.count("<section>"), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -42,6 +42,7 @@ class CodeEditor(tk.Frame):
         self.text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
         self.text.bind("<KeyRelease>", self._on_key)
+        self.text.bind("<ButtonRelease-1>", self._maj_ligne_courante)
         self.text.bind("<Return>", self._on_return)
         self.text.bind("<Tab>", self._on_tab)
         self.text.bind("<Shift-Tab>", self._on_shift_tab)
@@ -64,6 +65,7 @@ class CodeEditor(tk.Frame):
         self.highlight()
         self._update_gutter()
         self._verifier_syntaxe()
+        self._maj_ligne_courante()
 
     def focus_editor(self):
         self.text.focus_set()
@@ -83,7 +85,10 @@ class CodeEditor(tk.Frame):
         self.text.tag_configure("com", foreground=C["com"])
         self.text.tag_configure("errline", underline=True, foreground=C["err"])
         self.text.tag_configure("pasapas", background=C["accent"], foreground=C["sel_fg"])
+        self.text.tag_configure("curline", background=C.get("curline", C["code_bg"]))
+        self.text.tag_lower("curline")  # sous la coloration et les autres surlignages
         self.highlight()
+        self._maj_ligne_courante()
 
     def refresh_font(self):
         self.gutter.configure(font=self.font)
@@ -138,8 +143,15 @@ class CodeEditor(tk.Frame):
         self.highlight()
         self._update_gutter()
         self._verifier_syntaxe()
+        self._maj_ligne_courante()
         if self.on_change:
             self.on_change()
+
+    def _maj_ligne_courante(self, _e=None):
+        """Surligne discrètement la ligne où se trouve le curseur."""
+        self.text.tag_remove("curline", "1.0", "end")
+        ligne = int(self.text.index("insert").split(".")[0])
+        self.text.tag_add("curline", f"{ligne}.0", f"{ligne + 1}.0")
 
     def _verifier_syntaxe(self):
         """Compile le code en arrière-plan et souligne la ligne fautive."""
