@@ -1,0 +1,42 @@
+{
+  "format": 1,
+  "id": "mon-cours",
+  "titre": "Mon cours",
+  "auteur": "Prénom Nom",
+  "lecons": [
+    {
+      "id": "moncours-01",
+      "title": "Afficher un message",
+      "content": "## Afficher du texte\n\nLa fonction `print()` affiche ce qu'on lui donne.\n\n```\nprint('Bonjour')\n```\n\n- le texte va entre guillemets\n- **Exercice** : affiche `Bonjour la classe`",
+      "starter": "# Écris ton code ici\n",
+      "expected_output": "Bonjour la classe",
+      "solution": "print('Bonjour la classe')\n",
+      "hints": [
+        "Utilise print(...).",
+        "Le texte doit être entre guillemets."
+      ]
+    },
+    {
+      "id": "moncours-02",
+      "title": "Calculer une moyenne",
+      "content": "## Calculer\n\nRange le résultat dans une variable nommée `moyenne`.\n\n- **Exercice** : la moyenne de 12, 15 et 18",
+      "starter": "notes = [12, 15, 18]\nmoyenne = \n",
+      "check": "assert moyenne == 15, 'la moyenne devrait valoir 15'",
+      "solution": "notes = [12, 15, 18]\nmoyenne = sum(notes) / len(notes)\n"
+    },
+    {
+      "id": "moncours-quiz",
+      "type": "quiz",
+      "title": "Quiz de fin",
+      "content": "Une question pour vérifier que tout est clair.",
+      "question": "Que fait print('2' + '3') ?",
+      "options": [
+        "Affiche 5",
+        "Affiche 23",
+        "Provoque une erreur"
+      ],
+      "answer": 1,
+      "explanation": "Entre guillemets, ce sont des textes : « + » les colle bout à bout au lieu de les additionner."
+    }
+  ]
+}

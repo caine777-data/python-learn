@@ -31,6 +31,8 @@ pour de vrai et la réussite est vérifiée automatiquement.
 - ✅ **Certificat** de fin de parcours (HTML imprimable, à ton nom)
 - ✅ Confort d'édition : auto-fermeture des parenthèses, `Ctrl+/` pour commenter, indentation de bloc
 - ✅ **Interface bilingue FR / EN** (bascule en un clic ; le contenu des leçons reste en français)
+- ✅ **Packs de leçons** : ajoute tes propres exercices avec un simple
+  fichier `.json`, sans écrire une ligne de code (idéal en classe)
 - ✅ **Zéro dépendance** pour l'utilisateur (tout est en bibliothèque standard)
 - ✅ **Bac à sable sécurisé** : le « Brouillon » limite les modules importables et l'accès fichier/système
 - ✅ **Tests automatisés** du curriculum (les 132 solutions sont vérifiées par la CI)
@@ -200,6 +202,95 @@ Le détail (signature de code, notarisation Apple, Inno Setup) est dans
 
 ---
 
+## 🎒 Créer ses propres leçons (sans programmer)
+
+Tu peux ajouter tes propres parcours **sans toucher au code**, en déposant
+un simple fichier `.json`. C'est pensé pour les enseignants : tes exercices
+viennent s'ajouter aux 15 parcours livrés, et se partagent en envoyant un
+seul fichier.
+
+**Depuis l'application** — clique sur **📦 Mes leçons** dans la barre du
+haut. Le dossier s'ouvre dans l'explorateur, avec un exemple à modifier.
+Relance PythonLearn : ton parcours apparaît dans la liste, précédé de 📦.
+
+**Depuis un terminal**, si tu travailles à partir des sources :
+
+```bash
+python main.py --exemple-pack
+```
+
+```bash
+python main.py --verifier-packs
+```
+
+Tu peux aussi partir du fichier [`exemples/mon-cours.json`](exemples/mon-cours.json).
+
+### À quoi ressemble un fichier de leçons
+
+```json
+{
+  "format": 1,
+  "id": "mon-cours",
+  "titre": "Mon cours",
+  "auteur": "Prénom Nom",
+  "lecons": [
+    {
+      "id": "moncours-01",
+      "title": "Afficher un message",
+      "content": "## Afficher du texte\n\nLa fonction `print()` affiche...",
+      "starter": "# Écris ton code ici\n",
+      "expected_output": "Bonjour la classe",
+      "solution": "print('Bonjour la classe')\n",
+      "hints": ["Utilise print(...).", "Le texte va entre guillemets."]
+    }
+  ]
+}
+```
+
+| Champ | Rôle |
+|---|---|
+| `id` | identifiant unique du parcours, puis de chaque leçon |
+| `titre` | nom affiché dans la liste des parcours |
+| `auteur` | facultatif, affiché à la vérification |
+| `content` | l'explication (même balisage que les leçons livrées, voir plus bas) |
+| `starter` | le code déjà présent dans l'éditeur au départ |
+| `expected_output` | la sortie attendue, **ou** … |
+| `check` | … du code de test (`assert ...`) exécuté après celui de l'élève |
+| `solution` | la solution révélable |
+| `hints` | les indices, dévoilés un par un |
+
+Une leçon peut aussi être un **quiz** (`"type": "quiz"` avec `question`,
+`options` et `answer`, le numéro de la bonne option en partant de 0), ou un
+**projet en plusieurs étapes** (une liste `exercices`). Le détail des champs
+est dans la section suivante : le format est exactement le même que celui
+des parcours livrés avec l'application.
+
+### Vérifier son travail
+
+`--verifier-packs` dit précisément ce qui ne va pas, sans jargon :
+
+```
+1 fichier(s) trouvé(s), 1 parcours utilisable(s).
+  OK   mon-cours            3 leçon(s) — Prénom Nom
+
+Points à corriger :
+  - mon-cours.json — leçon 2 (« moncours-02 ») : « answer » vaut 5, mais il
+    n'y a que 3 options (numérotées de 0 à 2). Quiz écarté : personne ne
+    pourrait le réussir.
+```
+
+Un fichier mal formé n'empêche jamais l'application de démarrer : les leçons
+en cause sont écartées, les autres sont chargées, et un message récapitule
+ce qu'il faut corriger.
+
+> ⚠️ **Un pack contient du code qui s'exécutera sur la machine de
+> l'apprenant** (les champs `check` et `solution`), au moment où il clique
+> sur « Vérifier » ou « Solution ». N'installe que des packs dont tu connais
+> la provenance, comme pour n'importe quel programme. Rien n'est exécuté au
+> simple chargement du fichier.
+
+---
+
 ## ➕ Ajouter ou modifier des leçons
 
 Tout le contenu pédagogique vit dans le dossier `content/`, un fichier
@@ -268,8 +359,11 @@ python-learn/
 │   ├── progress.py          # sauvegarde (atomique) de la progression
 │   ├── version.py           # numéro de version, source unique
 │   └── icon.py              # icône embarquée (base64)
+├── exemples/
+│   └── mon-cours.json       # pack de leçons d'exemple, à copier
 ├── content/
 │   ├── __init__.py          # agrégation + utilitaires du schéma
+│   ├── packs.py             # leçons ajoutées par l'utilisateur (.json)
 │   ├── debutant.py … admin.py   # les 8 parcours de cours
 │   ├── sqlite_db.py         # parcours Bases de données (SQLite)
 │   ├── dessin.py            # parcours Dessiner (turtle)

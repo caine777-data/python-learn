@@ -80,6 +80,64 @@ def controle_sante():
     return 0
 
 
+def verifier_packs():
+    """Contrôle les packs de leçons installés et affiche un rapport lisible.
+
+    Destiné à qui écrit ses propres exercices : on obtient la liste des
+    erreurs sans avoir à lancer l'interface ni à chercher où ça coince.
+    """
+    from content import ids_utilises
+    from content.packs import DOSSIER_PACKS, charger_packs
+
+    _dire(f"Dossier des packs : {DOSSIER_PACKS}")
+    if not DOSSIER_PACKS.is_dir():
+        _dire("Ce dossier n'existe pas encore : aucun pack installé.")
+        _dire("Pour créer un exemple :  python main.py --exemple-pack")
+        return 0
+
+    fichiers = sorted(DOSSIER_PACKS.glob("*.json"))
+    parcours, problemes = charger_packs(ids_existants=ids_utilises())
+    _dire(f"{len(fichiers)} fichier(s) trouvé(s), "
+          f"{len(parcours)} parcours utilisable(s).")
+
+    for niveau in parcours:
+        auteur = niveau.get("auteur")
+        signature = f" — {auteur}" if auteur else ""
+        _dire(f"  OK   {niveau['id']:<20} "
+              f"{len(niveau['lessons'])} leçon(s){signature}")
+
+    if problemes:
+        _dire("")
+        _dire("Points à corriger :")
+        for souci in problemes:
+            _dire("  - " + souci)
+        return 1
+    if fichiers:
+        _dire("Aucun problème détecté.")
+    return 0
+
+
+def creer_exemple_pack():
+    """Écrit un pack de leçons d'exemple, prêt à être modifié."""
+    from content.packs import DOSSIER_PACKS, modele_pack
+
+    chemin = DOSSIER_PACKS / "mon-cours.json"
+    if chemin.exists():
+        # On n'écrase jamais le travail de quelqu'un.
+        _dire(f"Ce fichier existe déjà, rien n'a été écrit :\n  {chemin}")
+        return 1
+    try:
+        DOSSIER_PACKS.mkdir(parents=True, exist_ok=True)
+        chemin.write_text(modele_pack(), encoding="utf-8")
+    except OSError as exc:
+        _dire(f"Écriture impossible : {exc}")
+        return 1
+    _dire(f"Pack d'exemple créé :\n  {chemin}")
+    _dire("Ouvre-le dans un éditeur de texte, modifie-le, puis relance "
+          "PythonLearn : ton parcours apparaîtra dans la liste.")
+    return 0
+
+
 def main(argv=None):
     analyseur = argparse.ArgumentParser(
         prog="PythonLearn",
@@ -88,10 +146,18 @@ def main(argv=None):
                            version=f"{APP_NAME} {__version__}")
     analyseur.add_argument("--check", action="store_true",
                            help="contrôle que l'installation est complète, puis sort")
+    analyseur.add_argument("--verifier-packs", action="store_true",
+                           help="contrôle les packs de leçons installés, puis sort")
+    analyseur.add_argument("--exemple-pack", action="store_true",
+                           help="crée un pack de leçons d'exemple, puis sort")
     arguments = analyseur.parse_args(argv)
 
     if arguments.check:
         return controle_sante()
+    if arguments.verifier_packs:
+        return verifier_packs()
+    if arguments.exemple_pack:
+        return creer_exemple_pack()
 
     from app.ui import launch
     launch()

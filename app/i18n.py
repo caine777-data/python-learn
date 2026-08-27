@@ -170,6 +170,18 @@ STRINGS = {
         "err_timeout": ("TimeoutError : exécution interrompue, le "
                         "programme a tourné trop longtemps "
                         "(boucle infinie ?)."),
+        "tb_lecons": "📦 Mes leçons",
+        "dlg_lecons_title": "Mes leçons",
+        "dlg_lecons_msg": ("Dépose tes fichiers de leçons (.json) dans "
+                           "ce dossier :\n{dossier}\n\n"
+                           "Un exemple à modifier s'y trouve déjà. "
+                           "Relance PythonLearn pour voir apparaître "
+                           "ton parcours."),
+        "dlg_packs_title": "Packs de leçons",
+        "dlg_packs_msg": ("Certaines leçons ajoutées n'ont pas pu être "
+                          "chargées :\n\n{details}\n\n"
+                          "Pour le détail, lance dans un terminal :\n"
+                          "python main.py --verifier-packs"),
         "dlg_incident_title": "Progression",
         "dlg_incident_restaure": (
             "Ton fichier de progression était illisible : une sauvegarde "
@@ -328,6 +340,18 @@ STRINGS = {
                        "reopen the application if it slows down."),
         "err_timeout": ("TimeoutError: execution stopped, the program "
                         "ran for too long (infinite loop?)."),
+        "tb_lecons": "📦 My lessons",
+        "dlg_lecons_title": "My lessons",
+        "dlg_lecons_msg": ("Put your lesson files (.json) in this "
+                           "folder:\n{dossier}\n\n"
+                           "An example to edit is already there. "
+                           "Restart PythonLearn to see your track "
+                           "appear."),
+        "dlg_packs_title": "Lesson packs",
+        "dlg_packs_msg": ("Some added lessons could not be "
+                          "loaded:\n\n{details}\n\n"
+                          "For details, run in a terminal:\n"
+                          "python main.py --verifier-packs"),
         "dlg_incident_title": "Progress",
         "dlg_incident_restaure": (
             "Your progress file could not be read, so a backup was "

@@ -1,7 +1,9 @@
 """Interface graphique de PythonLearn (version enrichie)."""
 
+import os
 import pathlib
 import random
+import sys
 import tkinter as tk
 import webbrowser
 from datetime import date
@@ -16,6 +18,7 @@ from app.windows import Celebration, ExamWindow, FlashcardWindow, StepWindow
 from content import (
     CURRICULUM,
     GLOSSAIRE,
+    ajouter_packs,
     exercice_count,
     find_lesson,
     get_exercice,
@@ -73,6 +76,7 @@ class PythonLearnApp:
         self._echecs_session = 0
         self._tip = None
         self._tip_row = None
+        self.soucis_packs = []          # packs de leçons mal formés
         self._save_after_id = None      # sauvegarde différée en attente
         self._code_en_attente = None    # (item_id, texte) restant à écrire
 
@@ -108,6 +112,42 @@ class PythonLearnApp:
                                self.tr(cle, chemin=detail))
         if not self.data.get("vu_accueil"):
             self._show_welcome()
+
+    def _ouvrir_mes_lecons(self):
+        """Ouvre le dossier des leçons personnelles dans l'explorateur.
+
+        Le dossier est créé au besoin, et garni d'un exemple s'il est vide :
+        celui qui découvre la fonction a ainsi tout de suite un fichier à
+        modifier, plutôt qu'un dossier vide et une page blanche.
+        """
+        from content.packs import DOSSIER_PACKS, modele_pack
+        try:
+            DOSSIER_PACKS.mkdir(parents=True, exist_ok=True)
+            exemple = DOSSIER_PACKS / "mon-cours.json"
+            if not any(DOSSIER_PACKS.glob("*.json")):
+                exemple.write_text(modele_pack(), encoding="utf-8")
+        except OSError as exc:
+            messagebox.showwarning(self.tr("dlg_lecons_title"), str(exc))
+            return
+
+        if not _ouvrir_dossier(DOSSIER_PACKS):
+            # Pas d'explorateur disponible : on donne le chemin à recopier.
+            messagebox.showinfo(self.tr("dlg_lecons_title"),
+                                str(DOSSIER_PACKS))
+            return
+        messagebox.showinfo(self.tr("dlg_lecons_title"),
+                            self.tr("dlg_lecons_msg", dossier=str(DOSSIER_PACKS)))
+
+    def _avertir_packs(self):
+        """Signale les leçons ajoutées qui n'ont pas pu être chargées."""
+        soucis, self.soucis_packs = self.soucis_packs, []
+        if not soucis:
+            return
+        apercu = "\n".join("• " + souci for souci in soucis[:8])
+        if len(soucis) > 8:
+            apercu += "\n… et " + str(len(soucis) - 8) + " autre(s)."
+        messagebox.showwarning(self.tr("dlg_packs_title"),
+                               self.tr("dlg_packs_msg", details=apercu))
 
     def quitter(self):
         """Ferme l'application après avoir écrit le code encore en attente."""
@@ -157,6 +197,8 @@ class PythonLearnApp:
         self._tbtn(toolbar, "tb_brouillon", self._show_sandbox).pack(side=tk.LEFT, pady=4)
         self._tbtn(toolbar, "tb_reco", self._recommander).pack(side=tk.LEFT, padx=6, pady=4)
         self._tbtn(toolbar, "tb_examen", self._mode_examen).pack(side=tk.LEFT, pady=4)
+        self._tbtn(toolbar, "tb_lecons", self._ouvrir_mes_lecons).pack(
+            side=tk.LEFT, padx=6, pady=4)
         self._tbtn(toolbar, "tb_reset", self._reset_progress).pack(side=tk.RIGHT, padx=4, pady=4)
 
         outer = ttk.PanedWindow(self.root, orient=tk.HORIZONTAL)
@@ -1363,6 +1405,25 @@ class PythonLearnApp:
         ed.focus_editor()
 
 
+def _ouvrir_dossier(chemin):
+    """Ouvre un dossier dans l'explorateur de fichiers du système.
+
+    Renvoie False si aucun explorateur n'a pu être lancé — auquel cas
+    l'appelant se rabat sur l'affichage du chemin.
+    """
+    import subprocess
+    try:
+        if sys.platform == "win32":
+            os.startfile(str(chemin))                      # noqa: S606
+        elif sys.platform == "darwin":
+            subprocess.run(["open", str(chemin)], check=True)
+        else:
+            subprocess.run(["xdg-open", str(chemin)], check=True)
+        return True
+    except Exception:
+        return False
+
+
 def _splash(root):
     """Petit écran d'accueil (avec fondu) affiché le temps du démarrage."""
     C = THEMES["dark"]
@@ -1397,6 +1458,10 @@ def _splash(root):
 
 
 def launch():
+    # Les leçons ajoutées par l'utilisateur doivent être connues AVANT que
+    # l'interface ne construise sa liste de parcours.
+    _, soucis_packs = ajouter_packs()
+
     root = tk.Tk()
     root.withdraw()
     if ICON_B64:
@@ -1409,7 +1474,10 @@ def launch():
     sp = _splash(root)
     root.update()
     app = PythonLearnApp(root)
+    app.soucis_packs = soucis_packs
     root.protocol("WM_DELETE_WINDOW", app.quitter)
+    if soucis_packs:
+        root.after(900, app._avertir_packs)
 
     def _demarrer():
         def _sortie(a=1.0):

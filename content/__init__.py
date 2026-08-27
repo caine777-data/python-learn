@@ -32,6 +32,7 @@ from . import (
     expert,
     interfaces,
     intermediaire,
+    packs,
     projets,
     scripts,
     sqlite_db,
@@ -65,6 +66,39 @@ for _level in CURRICULUM:
     _quiz = QUIZ.get(_level["id"])
     if _quiz and not any(l["id"] == _quiz["id"] for l in _level["lessons"]):
         _level["lessons"].append(_quiz)
+
+
+# Les packs de l'utilisateur ne sont chargés qu'une fois, et seulement
+# sur demande explicite (voir ajouter_packs).
+_packs_charges = False
+
+
+def ids_utilises():
+    """Tous les identifiants déjà pris, parcours et leçons confondus."""
+    pris = set()
+    for niveau in CURRICULUM:
+        pris.add(niveau["id"])
+        for lecon in niveau["lessons"]:
+            pris.add(lecon["id"])
+    return pris
+
+
+def ajouter_packs(dossier=None):
+    """Ajoute au curriculum les packs de leçons de l'utilisateur.
+
+    Appelé au démarrage de l'application, et non à l'import du module :
+    les tests et l'intégration continue travaillent ainsi toujours sur le
+    curriculum officiel, quoi que contienne le dossier personnel.
+
+    Renvoie (parcours ajoutés, problèmes rencontrés).
+    """
+    global _packs_charges
+    if _packs_charges:
+        return [], []
+    nouveaux, problemes = packs.charger_packs(dossier, ids_utilises())
+    CURRICULUM.extend(nouveaux)
+    _packs_charges = True
+    return nouveaux, problemes
 
 
 def all_lessons():
