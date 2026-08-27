@@ -34,7 +34,7 @@ pour de vrai et la réussite est vérifiée automatiquement.
 - ✅ **Zéro dépendance** pour l'utilisateur (tout est en bibliothèque standard)
 - ✅ **Bac à sable sécurisé** : le « Brouillon » limite les modules importables et l'accès fichier/système
 - ✅ **Tests automatisés** du curriculum (les 132 solutions sont vérifiées par la CI)
-- ✅ **Installateurs** Windows (.exe), macOS (.dmg Intel et Apple Silicon)
+- ✅ **Installateurs** Windows (.exe), macOS (.dmg Apple Silicon)
   et Linux (.deb + archive) générés **automatiquement** par GitHub Actions
 
 |  Thème sombre  |  Thème clair  |  Quiz (contraste élevé)  |
@@ -145,12 +145,18 @@ est embarqué dans le téléchargement.
 | **Windows** | `PythonLearn-Setup-<version>.exe` | Double-clic. S'installe pour ton compte, sans droits administrateur. |
 | Windows, sans installer | `PythonLearn-<version>-windows-portable.exe` | Se lance directement depuis le fichier téléchargé. |
 | **macOS** Apple Silicon | `PythonLearn-<version>-arm64.dmg` | Glisse l'app dans Applications, puis **clic droit → Ouvrir** au premier lancement. |
-| **macOS** Intel | `PythonLearn-<version>-x86_64.dmg` | Idem. |
+| **macOS** Intel | *(aucun)* | Voir la note ci-dessous. |
 | **Debian / Ubuntu / Mint** | `python-learn_<version>_amd64.deb` | `sudo apt install ./python-learn_<version>_amd64.deb` |
 | **Autres Linux** | `python-learn-<version>-linux-amd64.tar.gz` | Décompresse, puis `bash installer.sh` (aucun `sudo` requis). |
 
 Le fichier `SHA256SUMS.txt` joint à chaque Release permet de vérifier
 l'intégrité de ce que tu as téléchargé.
+
+> **Pourquoi rien pour les Mac Intel ?** GitHub a retiré les machines de
+> construction Intel, et un binaire Apple Silicon ne démarre pas sur un
+> processeur Intel. Ces Mac restent parfaitement servis par les sources :
+> installe Python depuis [python.org](https://www.python.org/downloads/),
+> puis lance `python main.py` (voir plus bas). C'est la même application.
 
 ### Les avertissements de sécurité, en clair
 
@@ -177,9 +183,9 @@ Tout est automatisé par GitHub Actions ; il n'y a rien à compiler soi-même.
    git tag v1.1.0
    git push origin v1.1.0
    ```
-3. Le workflow `build.yml` lance les tests, construit les six fichiers
-   d'installation (Windows, macOS Intel et Apple Silicon, Linux), vérifie
-   chaque exécutable produit, puis crée la **Release** avec ses empreintes.
+3. Le workflow `build.yml` lance les tests, construit les cinq fichiers
+   d'installation (Windows, macOS, Linux), vérifie chaque exécutable
+   produit, puis crée la **Release** avec ses empreintes.
 
 > Le tag doit correspondre exactement à `app/version.py` : sinon la CI
 > s'arrête avec un message explicite, plutôt que de publier une version mal

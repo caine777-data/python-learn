@@ -5,7 +5,6 @@ name: Construire les installateurs
 #   Windows      PythonLearn-Setup-<version>.exe        (installateur classique)
 #                PythonLearn-<version>-windows-portable.exe
 #   macOS        PythonLearn-<version>-arm64.dmg        (Mac Apple Silicon)
-#                PythonLearn-<version>-x86_64.dmg       (Mac Intel)
 #   Linux        python-learn_<version>_amd64.deb       (Debian, Ubuntu, Mint…)
 #                python-learn-<version>-linux-amd64.tar.gz  (toutes distributions)
 #
@@ -81,12 +80,14 @@ jobs:
           - nom: Windows
             os: windows-latest
             arch: x86_64
+          # GitHub a retiré ses runners macOS Intel : il n'existe plus
+          # d'image x86_64 pour produire un .dmg compatible Mac Intel. Ces
+          # machines peuvent lancer l'application depuis les sources.
+          # « macos-latest » plutôt qu'une version figée, pour ne pas se
+          # retrouver bloqué au prochain retrait d'image.
           - nom: macOS (Apple Silicon)
-            os: macos-14
+            os: macos-latest
             arch: arm64
-          - nom: macOS (Intel)
-            os: macos-13
-            arch: x86_64
           # Volontairement une version ancienne d'Ubuntu : un binaire compilé
           # sur une vieille glibc fonctionne sur les distributions récentes,
           # l'inverse n'est pas vrai.
@@ -229,14 +230,17 @@ jobs:
             Tu préfères ne rien installer ? Prends la version **portable**, qui
             se lance directement depuis le fichier téléchargé.
 
-            ### macOS
-            Prends le `.dmg` correspondant à ton Mac :
-            - **`-arm64.dmg`** pour les Mac Apple Silicon (M1 et suivants) ;
-            - **`-x86_64.dmg`** pour les Mac Intel.
+            ### macOS (Apple Silicon — M1 et suivants)
+            Ouvre **`PythonLearn-${{ needs.preparer.outputs.version }}-arm64.dmg`**,
+            glisse PythonLearn dans Applications, puis au **premier lancement**
+            fais un clic droit sur l'application → *Ouvrir*. Cette
+            confirmation n'est demandée qu'une fois.
 
-            Ouvre-le, glisse PythonLearn dans Applications, puis au **premier
-            lancement** fais un clic droit sur l'application → *Ouvrir*.
-            Cette confirmation n'est demandée qu'une fois.
+            > **Mac Intel** : aucun `.dmg` n'est fourni, faute de machine de
+            > construction Intel disponible. L'application fonctionne malgré
+            > tout : installe Python depuis [python.org](https://www.python.org/downloads/),
+            > télécharge le code source de cette Release, puis lance
+            > `python main.py`.
 
             ### Linux
             - Debian, Ubuntu, Mint : `sudo apt install ./python-learn_${{ needs.preparer.outputs.version }}_amd64.deb`

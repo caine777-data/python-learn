@@ -26,7 +26,7 @@ Le workflow `.github/workflows/build.yml` se charge du reste :
 | Tests | les 132 solutions du curriculum passent leurs propres tests |
 | Version | le tag correspond bien à `app/version.py`, sinon la CI s'arrête |
 | Windows | `PythonLearn-Setup-<version>.exe` + version portable |
-| macOS | `.dmg` pour Apple Silicon **et** pour Intel |
+| macOS | `.dmg` pour Apple Silicon |
 | Linux | `.deb` + archive `.tar.gz` autonome |
 | Contrôle | chaque exécutable produit est lancé avec `--check` |
 | Release | les fichiers sont publiés avec leurs empreintes SHA-256 |
@@ -154,9 +154,22 @@ xcrun notarytool submit PythonLearn.dmg --apple-id … --team-id … --wait
 xcrun stapler staple PythonLearn.dmg
 ```
 
-Deux `.dmg` sont produits car les Mac Intel et Apple Silicon ne partagent
-pas le même jeu d'instructions : un binaire arm64 ne démarre pas sur un Mac
-Intel.
+### Le cas des Mac Intel
+
+Un binaire arm64 ne démarre pas sur un processeur Intel, et GitHub a retiré
+ses runners macOS Intel : il n'existe donc plus de machine gratuite capable
+de produire un `.dmg` x86_64.
+
+Trois voies si le besoin se présente un jour :
+
+- **Les sources** (ce que recommande la Release) : `python main.py` fonctionne
+  à l'identique sur un Mac Intel, il suffit d'installer Python.
+- **Un binaire universal2**, qui contiendrait les deux architectures. Cela
+  suppose un interpréteur Python lui-même universal2 — ni celui de
+  `actions/setup-python`, ni celui de Homebrew ne le sont — puis
+  `pyinstaller --target-arch universal2`.
+- **Un runner auto-hébergé** : n'importe quel Mac Intel que tu possèdes peut
+  être déclaré comme machine de construction dans les réglages du dépôt.
 
 ---
 
