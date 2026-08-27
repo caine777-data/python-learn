@@ -1,0 +1,15 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=PythonLearn
+GenericName=Apprendre Python
+GenericName[en]=Learn Python
+Comment=Apprendre Python pas à pas, du débutant à l'expert
+Comment[en]=Learn Python step by step, from beginner to expert
+Exec=python-learn
+Icon=python-learn
+Terminal=false
+Categories=Education;Development;IDE;
+Keywords=python;programmation;apprentissage;cours;exercices;
+Keywords[en]=python;programming;learning;course;exercises;
+StartupWMClass=PythonLearn

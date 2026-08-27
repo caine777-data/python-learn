@@ -1,7 +1,8 @@
 """Tests de la logique de motivation (streak, SRS, certificat)."""
 
-import unittest
 import datetime
+import unittest
+
 from app import stats
 
 

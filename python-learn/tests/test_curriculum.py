@@ -9,8 +9,8 @@ chaque quiz a une réponse cohérente. Lancé en local et par la CI :
 
 import unittest
 
-from content import CURRICULUM, get_exercice, exercice_count, lesson_items
 from app.runner import run_exercise
+from content import CURRICULUM, exercice_count, get_exercice, lesson_items
 
 
 class TestCurriculum(unittest.TestCase):

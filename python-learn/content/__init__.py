@@ -21,11 +21,25 @@ Schéma d'une leçon (tous les champs marqués (option) sont facultatifs) :
     }
 """
 
-from . import (debutant, intermediaire, avance, expert,
-               scripts, interfaces, web, admin, sqlite_db, dessin, projets,
-               entrainement, algos, donnees, tests_tdd)
-from .hints import HINTS
+from . import (
+    admin,
+    algos,
+    avance,
+    debutant,
+    dessin,
+    donnees,
+    entrainement,
+    expert,
+    interfaces,
+    intermediaire,
+    projets,
+    scripts,
+    sqlite_db,
+    tests_tdd,
+    web,
+)
 from .glossaire import GLOSSAIRE
+from .hints import HINTS
 from .quiz_parcours import QUIZ
 
 CURRICULUM = [

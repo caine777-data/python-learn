@@ -1,0 +1,16 @@
+# Normalisation automatique des fins de ligne pour les fichiers texte.
+* text=auto
+
+# Les scripts d'empaquetage sont exécutés par bash sur macOS et Linux :
+# des fins de ligne Windows (CRLF) les rendraient inutilisables
+# (« $'\r': command not found »). On impose donc LF.
+*.sh text eol=lf
+*.desktop text eol=lf
+
+# Inversement, le script Inno Setup n'est lu que par des outils Windows.
+*.iss text eol=crlf
+
+# Fichiers binaires : aucune conversion.
+*.png binary
+*.ico binary
+*.icns binary

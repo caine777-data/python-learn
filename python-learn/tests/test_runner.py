@@ -1,7 +1,8 @@
 """Tests du moteur d'exécution (inspecteur de variables, pas-à-pas)."""
 
 import unittest
-from app.runner import inspecter, tracer, run_code
+
+from app.runner import inspecter, run_code, tracer
 
 
 class TestRunner(unittest.TestCase):

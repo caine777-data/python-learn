@@ -5,13 +5,18 @@ __pycache__/
 .venv/
 venv/
 
-# PyInstaller
+# PyInstaller et empaquetage
 build/
 dist/
 *.spec
+Output/
+livraison/
 
 # Données locales de progression (ne pas committer)
 .python-learn/
+
+# Outils de développement
+.ruff_cache/
 
 # OS / éditeurs
 .DS_Store

@@ -4,8 +4,8 @@ syntaxique, et confort d'édition (auto-fermeture, indentation de bloc,
 commentaire rapide).
 """
 
-import re
 import keyword
+import re
 import tkinter as tk
 
 _KW = set(keyword.kwlist)

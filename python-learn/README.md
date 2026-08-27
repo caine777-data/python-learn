@@ -34,7 +34,8 @@ pour de vrai et la réussite est vérifiée automatiquement.
 - ✅ **Zéro dépendance** pour l'utilisateur (tout est en bibliothèque standard)
 - ✅ **Bac à sable sécurisé** : le « Brouillon » limite les modules importables et l'accès fichier/système
 - ✅ **Tests automatisés** du curriculum (les 132 solutions sont vérifiées par la CI)
-- ✅ Exécutables Windows / macOS / Linux générés **automatiquement** par GitHub Actions
+- ✅ **Installateurs** Windows (.exe), macOS (.dmg Intel et Apple Silicon)
+  et Linux (.deb + archive) générés **automatiquement** par GitHub Actions
 
 |  Thème sombre  |  Thème clair  |  Quiz (contraste élevé)  |
 |:---:|:---:|:---:|
@@ -133,40 +134,63 @@ python main.py
 
 ---
 
-## 📦 Récupérer l'exécutable (.exe)
+## 📦 Installer l'application (rien à compiler)
 
-Tu n'as **rien à compiler toi-même**. Deux options :
+Va dans l'onglet **[Releases](../../releases)** et prends le fichier qui
+correspond à ton système. **Python n'a pas besoin d'être installé** : tout
+est embarqué dans le téléchargement.
 
-### Option A — via les Releases (recommandé)
+| Système | Fichier | Installation |
+|---|---|---|
+| **Windows** | `PythonLearn-Setup-<version>.exe` | Double-clic. S'installe pour ton compte, sans droits administrateur. |
+| Windows, sans installer | `PythonLearn-<version>-windows-portable.exe` | Se lance directement depuis le fichier téléchargé. |
+| **macOS** Apple Silicon | `PythonLearn-<version>-arm64.dmg` | Glisse l'app dans Applications, puis **clic droit → Ouvrir** au premier lancement. |
+| **macOS** Intel | `PythonLearn-<version>-x86_64.dmg` | Idem. |
+| **Debian / Ubuntu / Mint** | `python-learn_<version>_amd64.deb` | `sudo apt install ./python-learn_<version>_amd64.deb` |
+| **Autres Linux** | `python-learn-<version>-linux-amd64.tar.gz` | Décompresse, puis `bash installer.sh` (aucun `sudo` requis). |
 
-1. Pousse le projet sur GitHub.
-2. Crée un tag de version, par exemple :
+Le fichier `SHA256SUMS.txt` joint à chaque Release permet de vérifier
+l'intégrité de ce que tu as téléchargé.
+
+### Les avertissements de sécurité, en clair
+
+L'application n'est signée par aucun certificat payant. Les systèmes
+préviennent donc l'utilisateur au premier lancement — c'est attendu, et sans
+danger :
+
+- **Windows** : *« Windows a protégé votre ordinateur »* →
+  *Informations complémentaires* → *Exécuter quand même*.
+- **macOS** : au premier lancement, **clic droit sur l'app → Ouvrir** (un
+  double-clic ne proposerait pas l'option). Si macOS annonce que l'application
+  est « endommagée » :
+  `xattr -dr com.apple.quarantine /Applications/PythonLearn.app`.
+
+---
+
+## 🚢 Publier une nouvelle version
+
+Tout est automatisé par GitHub Actions ; il n'y a rien à compiler soi-même.
+
+1. Mettre à jour le numéro dans [`app/version.py`](app/version.py).
+2. Committer, puis poser le tag correspondant :
    ```bash
-   git tag v1.0.0
-   git push origin v1.0.0
+   git tag v1.1.0
+   git push origin v1.1.0
    ```
-3. GitHub Actions construit automatiquement les exécutables Windows,
-   macOS et Linux, puis les attache à une **Release**.
-4. Va dans l'onglet **Releases** de ton dépôt et télécharge
-   `PythonLearn-windows.exe`.
+3. Le workflow `build.yml` lance les tests, construit les six fichiers
+   d'installation (Windows, macOS Intel et Apple Silicon, Linux), vérifie
+   chaque exécutable produit, puis crée la **Release** avec ses empreintes.
 
-### Option B — build manuel local
+> Le tag doit correspondre exactement à `app/version.py` : sinon la CI
+> s'arrête avec un message explicite, plutôt que de publier une version mal
+> étiquetée.
 
-```bash
-pip install -r requirements-dev.txt
-pyinstaller --onefile --windowed --name PythonLearn main.py
-```
+Pour essayer la chaîne sans rien publier : onglet **Actions** →
+*Construire les installateurs* → **Run workflow**. Les fichiers sont alors
+déposés en artefacts, sans créer de Release.
 
-L'exécutable apparaît dans le dossier `dist/`.
-
-> ℹ️ Sous Windows, SmartScreen peut afficher un avertissement pour un
-> exécutable non signé : *Informations complémentaires → Exécuter quand
-> même*. C'est normal pour une application personnelle non signée.
-
-Pour aller plus loin (installateur Windows via **Inno Setup**, publication sur
-**GitHub Releases**, signature de code, `.dmg` macOS), voir le guide détaillé
-**[DIFFUSION.md](DIFFUSION.md)**. Le script `packaging/installer.iss` est prêt
-à l'emploi, et le workflow `build.yml` construit aussi l'installateur Windows.
+Le détail (signature de code, notarisation Apple, Inno Setup) est dans
+**[DIFFUSION.md](DIFFUSION.md)**.
 
 ---
 
@@ -221,7 +245,11 @@ n'est requise.
 
 ```
 python-learn/
-├── main.py                  # point d'entrée
+├── main.py                  # point d'entrée (--version, --check)
+├── pyproject.toml           # métadonnées + configuration de ruff
+├── .github/workflows/
+│   ├── tests.yml            # tests + style (3 systèmes × 2 versions de Python)
+│   └── build.yml            # installateurs Windows / macOS / Linux + Release
 ├── app/
 │   ├── ui.py                # interface principale
 │   ├── editor.py            # éditeur (coloration, n° de ligne, confort)
@@ -229,7 +257,8 @@ python-learn/
 │   ├── errors.py            # explication pédagogique des erreurs
 │   ├── stats.py             # streak, répétition espacée, certificat
 │   ├── i18n.py              # traductions FR / EN de l'interface
-│   ├── progress.py          # sauvegarde de la progression
+│   ├── progress.py          # sauvegarde (atomique) de la progression
+│   ├── version.py           # numéro de version, source unique
 │   └── icon.py              # icône embarquée (base64)
 ├── content/
 │   ├── __init__.py          # agrégation + utilitaires du schéma
@@ -240,11 +269,12 @@ python-learn/
 │   ├── quiz_parcours.py     # un quiz de fin par parcours (injecté auto)
 │   ├── hints.py             # indices progressifs
 │   └── glossaire.py         # termes du glossaire
+├── packaging/
+│   ├── installer.iss        # installateur Windows (Inno Setup)
+│   ├── linux/               # paquet .deb + archive autonome
+│   └── macos/               # disque d'installation .dmg
 ├── assets/                  # icônes + captures
-├── tests/                   # tests automatiques du curriculum
-├── .github/workflows/
-│   ├── build.yml            # génération auto des exécutables
-│   └── tests.yml            # validation du curriculum (CI)
+├── tests/                   # tests du curriculum, du moteur et des traductions
 ├── requirements.txt
 ├── requirements-dev.txt
 └── README.md

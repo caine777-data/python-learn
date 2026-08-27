@@ -10,14 +10,13 @@ exception de façon asynchrone dans le thread d'exécution s'il dépasse
 le délai imparti.
 """
 
-import ctypes
-import threading
-import io
-import sys
 import builtins as _builtins
 import contextlib
+import ctypes
+import io
+import sys
+import threading
 import traceback
-
 
 # Modules autorisés dans le bac à sable « Brouillon » (expérimentation sûre).
 SANDBOX_MODULES = {

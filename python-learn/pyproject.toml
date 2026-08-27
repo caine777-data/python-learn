@@ -1,0 +1,61 @@
+[project]
+name = "python-learn"
+version = "1.0.0"
+description = "Apprendre Python pas à pas, du débutant à l'expert — application de bureau."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [{ name = "C. Monna" }]
+keywords = ["python", "apprentissage", "pédagogie", "tkinter", "exercices"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: X11 Applications",
+    "Intended Audience :: Education",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: French",
+    "Programming Language :: Python :: 3",
+    "Topic :: Education",
+]
+# L'application ne dépend que de la bibliothèque standard.
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pyinstaller>=6.0", "ruff>=0.6"]
+
+[project.gui-scripts]
+python-learn = "main:main"
+
+[project.urls]
+Source = "https://github.com/cedricmonna/python-learn"
+
+# --------------------------------------------------------------------------
+# Ruff — vérification du style et des erreurs évidentes.
+#   ruff check .          signale les problèmes
+#   ruff check . --fix    corrige ce qui est corrigeable
+# --------------------------------------------------------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+extend-exclude = ["build", "dist"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # erreurs de style (pycodestyle)
+    "F",    # erreurs réelles (pyflakes) : noms inconnus, imports inutilisés…
+    "W",    # avertissements (espaces en fin de ligne…)
+    "I",    # ordre des imports
+    "UP",   # tournures modernisables
+    "B",    # pièges classiques (bugbear)
+    "C4",   # compréhensions inutilement compliquées
+]
+ignore = [
+    "E501",    # longueur de ligne : déjà cadrée par line-length + formatage manuel
+    "B008",    # appel de fonction dans une valeur par défaut : voulu pour Tkinter
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Le curriculum contient volontairement du code d'exemple imparfait
+# (c'est le sujet même des exercices « débogue ce code »).
+"content/*.py" = ["E", "W", "F", "B", "UP", "C4"]
+# Les tests importent parfois localement pour rester lisibles.
+"tests/*.py" = ["B"]

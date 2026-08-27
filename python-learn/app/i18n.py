@@ -163,6 +163,16 @@ STRINGS = {
         "dlg_solution_none": "Pas de solution prédéfinie ici.",
         "dlg_solution_confirm": "Remplacer ton code par la solution ?",
         "dlg_step_title": "Pas à pas",
+        "dlg_incident_title": "Progression",
+        "dlg_incident_restaure": (
+            "Ton fichier de progression était illisible : une sauvegarde "
+            "de secours a été restaurée.\n\nTu as peut-être perdu les "
+            "toutes dernières minutes de travail, mais rien de plus."),
+        "dlg_incident_perdu": (
+            "Ton fichier de progression était illisible et aucune "
+            "sauvegarde n'a pu le remplacer.\n\nIl a été mis de côté "
+            "ici :\n{chemin}\n\nL'application repart d'une progression "
+            "vierge."),
         "dlg_export_title": "Export",
         "dlg_export_fail": "Impossible d'enregistrer le fichier.",
     },
@@ -306,6 +316,15 @@ STRINGS = {
         "dlg_solution_none": "No predefined solution here.",
         "dlg_solution_confirm": "Replace your code with the solution?",
         "dlg_step_title": "Step-by-step",
+        "dlg_incident_title": "Progress",
+        "dlg_incident_restaure": (
+            "Your progress file could not be read, so a backup was "
+            "restored.\n\nYou may have lost the last few minutes of work, "
+            "but nothing more."),
+        "dlg_incident_perdu": (
+            "Your progress file could not be read and no backup could "
+            "replace it.\n\nIt has been set aside here:\n{chemin}\n\n"
+            "The app is starting from a blank progress."),
         "dlg_export_title": "Export",
         "dlg_export_fail": "Could not save the file.",
     },

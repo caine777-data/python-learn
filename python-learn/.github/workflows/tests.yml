@@ -1,7 +1,9 @@
 name: Tests
 
-# Valide automatiquement tout le curriculum (les solutions doivent passer
-# leurs tests) à chaque push et chaque pull request.
+# Valide le projet à chaque push et chaque pull request :
+#   - les 132 solutions du curriculum passent bien leurs propres tests ;
+#   - la logique de progression, de motivation et de traduction est saine ;
+#   - le style du code reste homogène (ruff).
 
 on:
   push:
@@ -9,7 +11,39 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
+  tests:
+    name: Tests (${{ matrix.os }}, Python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ["3.10", "3.13"]
+
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Installer Python ${{ matrix.python }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      # Sur Linux, tkinter est un paquet séparé. Les tests eux-mêmes ne
+      # dessinent rien, mais le contrôle de santé vérifie que l'interface
+      # pourrait démarrer.
+      - name: Installer Tk (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y python3-tk
+
+      - name: Lancer les tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Contrôler que l'installation est complète
+        run: python main.py --check
+
+  style:
+    name: Style (ruff)
     runs-on: ubuntu-latest
     steps:
       - name: Récupérer le code
@@ -18,7 +52,10 @@ jobs:
       - name: Installer Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.13"
 
-      - name: Lancer les tests
-        run: python -m unittest discover -s tests -v
+      - name: Installer ruff
+        run: python -m pip install --upgrade pip ruff
+
+      - name: Vérifier le style
+        run: ruff check .

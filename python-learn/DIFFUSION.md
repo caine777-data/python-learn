@@ -1,97 +1,180 @@
 # Diffuser PythonLearn
 
-Ce guide explique comment transformer le code en exécutables téléchargeables
-et les publier proprement. L'application reste **sans dépendance** pour
-l'utilisateur final : tout est embarqué dans l'exécutable.
+Ce guide explique comment le code devient des fichiers d'installation
+téléchargeables, et comment les publier proprement. L'application reste
+**sans dépendance** pour l'utilisateur final : Python, tkinter et le
+curriculum sont embarqués dans le fichier livré.
 
 ---
 
-## 1. Construire l'exécutable (PyInstaller)
+## 1. La voie normale : ne rien construire soi-même
 
-En local, depuis la racine du projet :
+Tout est automatisé. Pour publier une version :
+
+1. Mettre à jour le numéro dans `app/version.py`.
+2. Committer, puis poser le tag correspondant :
 
 ```bash
-pip install -r requirements-dev.txt        # installe pyinstaller
-pyinstaller --onefile --windowed --name PythonLearn main.py
+git tag v1.1.0
+git push origin v1.1.0
 ```
 
-- `--onefile` : un seul `.exe` (plus simple à distribuer).
-- `--windowed` : pas de console noire au lancement.
-- Le résultat est dans `dist/PythonLearn.exe` (ou `dist/PythonLearn` sur macOS/Linux).
+Le workflow `.github/workflows/build.yml` se charge du reste :
 
-Pour embarquer une icône : ajouter `--icon assets/icon.ico` (Windows) ou
-`--icon assets/icon.icns` (macOS).
+| Étape | Ce qui est vérifié ou produit |
+|---|---|
+| Tests | les 132 solutions du curriculum passent leurs propres tests |
+| Version | le tag correspond bien à `app/version.py`, sinon la CI s'arrête |
+| Windows | `PythonLearn-Setup-<version>.exe` + version portable |
+| macOS | `.dmg` pour Apple Silicon **et** pour Intel |
+| Linux | `.deb` + archive `.tar.gz` autonome |
+| Contrôle | chaque exécutable produit est lancé avec `--check` |
+| Release | les fichiers sont publiés avec leurs empreintes SHA-256 |
 
-> La génération multi-plateforme est déjà automatisée : voir
-> `.github/workflows/build.yml`, qui produit les exécutables Windows, macOS et
-> Linux à chaque tag `v*`.
+Pour **essayer la chaîne sans publier** : onglet *Actions* →
+*Construire les installateurs* → *Run workflow*. Les fichiers sont déposés
+en artefacts téléchargeables, sans créer de Release.
+
+> Le contrôle `--check` est le garde-fou le plus utile de la chaîne : il
+> lance réellement le binaire fabriqué et vérifie que tkinter, le curriculum
+> et le moteur d'exécution sont bien présents dedans. C'est ce qui attrape
+> le classique « l'exe se construit mais ne s'ouvre pas ».
 
 ---
 
-## 2. Installateur Windows (Inno Setup)
+## 2. Construire en local (mise au point)
 
-Un simple `.exe` suffit, mais un **installateur** fait plus professionnel
-(raccourcis menu Démarrer + Bureau, désinstallation propre).
+Utile seulement pour déboguer l'empaquetage. Chaque système ne peut
+construire que pour lui-même.
+
+```bash
+pip install -r requirements-dev.txt        # pyinstaller + ruff
+```
+
+**Windows**
+
+```bat
+pyinstaller --onefile --windowed --icon assets/icon.ico --name PythonLearn main.py
+dist\PythonLearn.exe --check
+```
+
+**macOS** — sans `--onefile`, pour obtenir un vrai bundle `.app` :
+
+```bash
+pyinstaller --windowed --icon assets/icon.icns --name PythonLearn main.py
+dist/PythonLearn.app/Contents/MacOS/PythonLearn --check
+bash packaging/macos/construire-dmg.sh 1.1.0 arm64
+```
+
+**Linux**
+
+```bash
+pyinstaller --onefile --name PythonLearn main.py
+./dist/PythonLearn --check
+bash packaging/linux/construire-paquets.sh 1.1.0
+```
+
+- `--onefile` : un seul fichier, plus simple à distribuer.
+- `--windowed` : pas de console noire au lancement.
+
+> Sur Linux, le binaire est construit par la CI sur **Ubuntu 22.04** à
+> dessein : un exécutable compilé avec une vieille glibc fonctionne sur les
+> distributions récentes, alors que l'inverse échoue.
+
+---
+
+## 3. Installateur Windows (Inno Setup)
+
+Le script `packaging/installer.iss` est prêt à l'emploi. Il installe
+**sans droits administrateur** (`PrivilegesRequired=lowest`), crée les
+raccourcis, et propose une désinstallation propre — qui **ne supprime pas**
+la progression de l'apprenant (`%USERPROFILE%\.python-learn`).
 
 1. Installer [Inno Setup 6](https://jrsoftware.org/isdl.php) (gratuit).
-2. Générer d'abord `dist\PythonLearn.exe` (étape 1).
-3. Compiler l'installateur :
+2. Générer d'abord `dist\PythonLearn.exe` (étape 2).
+3. Compiler :
 
 ```bat
 iscc packaging\installer.iss
+iscc /DMaVersion=1.1.0 packaging\installer.iss     :: version imposée
 ```
 
-Le résultat est déposé dans `Output\PythonLearn-Setup.exe`. Le script
-installe **sans droits administrateur** (`PrivilegesRequired=lowest`).
+Le résultat est déposé dans `Output\PythonLearn-Setup-<version>.exe`.
 
----
-
-## 3. Publier sur GitHub Releases
-
-1. Taguer une version : `git tag v1.0.0 && git push origin v1.0.0`.
-   → le workflow `build.yml` construit les exécutables.
-2. Sur GitHub : **Releases → Draft a new release**, choisir le tag.
-3. Joindre les fichiers : `PythonLearn.exe`, `PythonLearn-Setup.exe`,
-   les binaires macOS / Linux.
-4. Rédiger les notes de version (nouveautés) et publier.
-
-On peut aussi laisser le workflow attacher automatiquement les artefacts à la
-Release (action `softprops/action-gh-release`).
+> `AppId` est l'identifiant qui permet à Windows de reconnaître une **mise à
+> jour** plutôt que d'installer un second exemplaire côte à côte. Ne jamais
+> le modifier une fois une version publiée.
 
 ---
 
 ## 4. Signature & avertissement SmartScreen (Windows)
 
-Un exécutable **non signé** déclenche l'écran bleu *« Windows a protégé votre
-ordinateur »* (SmartScreen). C'est normal et sans danger, mais ça inquiète les
-utilisateurs. Trois options, de la plus simple à la plus pro :
+Un exécutable **non signé** déclenche l'écran *« Windows a protégé votre
+ordinateur »*. C'est normal et sans danger, mais ça inquiète les
+utilisateurs. Trois options, de la plus simple à la plus professionnelle :
 
 - **Ne rien signer** : indiquer aux utilisateurs de cliquer sur
-  *« Informations complémentaires » → « Exécuter quand même »*. Acceptable pour
-  un projet personnel/open-source.
+  *« Informations complémentaires » → « Exécuter quand même »*. Tout à fait
+  acceptable pour un projet libre.
 - **Certificat de signature de code** (OV, ~70-150 €/an) : signe le binaire,
   mais la réputation SmartScreen se construit progressivement.
 - **Certificat EV** (plus cher) : réputation immédiate, plus d'alerte.
 
-Signer (si tu as un certificat `.pfx`) :
+Signer, si tu as un certificat `.pfx` :
 
 ```bat
 signtool sign /f certificat.pfx /p MOT_DE_PASSE /tr http://timestamp.digicert.com /td sha256 /fd sha256 dist\PythonLearn.exe
 ```
 
-> La signature **n'est pas obligatoire** pour distribuer : l'app fonctionne
-> parfaitement, c'est uniquement une question de confiance affichée.
+> La signature **n'est pas obligatoire** pour distribuer : l'application
+> fonctionne parfaitement sans, c'est uniquement une question de confiance
+> affichée.
 
 ---
 
-## 5. macOS (optionnel)
+## 5. macOS : Gatekeeper et notarisation
+
+Le script `packaging/macos/construire-dmg.sh` produit un `.dmg` contenant
+l'application, un raccourci vers `/Applications` et un fichier `LISEZ-MOI`.
+Il applique une **signature ad hoc** (`codesign --sign -`), gratuite : elle
+ne remplace pas un compte développeur, mais évite un refus catégorique.
+
+Au premier lancement, l'utilisateur doit faire **clic droit → Ouvrir**. En
+cas de message « application endommagée » :
 
 ```bash
-pip install create-dmg            # ou: brew install create-dmg
-pyinstaller --onefile --windowed --name PythonLearn main.py
-create-dmg dist/PythonLearn.app   # produit un .dmg distribuable
+xattr -dr com.apple.quarantine /Applications/PythonLearn.app
 ```
 
-Comme sous Windows, un binaire non notarisé affiche un avertissement
-Gatekeeper ; l'utilisateur l'ouvre via *clic droit → Ouvrir*. La notarisation
-(compte développeur Apple) supprime l'avertissement.
+La **notarisation** (compte développeur Apple, ~99 €/an) supprime
+définitivement l'avertissement :
+
+```bash
+xcrun notarytool submit PythonLearn.dmg --apple-id … --team-id … --wait
+xcrun stapler staple PythonLearn.dmg
+```
+
+Deux `.dmg` sont produits car les Mac Intel et Apple Silicon ne partagent
+pas le même jeu d'instructions : un binaire arm64 ne démarre pas sur un Mac
+Intel.
+
+---
+
+## 6. Linux : deux formats, deux publics
+
+| Format | Pour qui | Installation |
+|---|---|---|
+| `.deb` | Debian, Ubuntu, Mint… | `sudo apt install ./python-learn_<version>_amd64.deb` |
+| `.tar.gz` | toutes les autres distributions | `bash installer.sh`, sans `sudo` |
+
+Le paquet `.deb` place le binaire dans `/usr/lib/python-learn/`, un lien
+dans `/usr/bin/`, l'icône et le fichier `.desktop` aux emplacements
+standard : l'application apparaît alors dans le menu des applications.
+
+L'archive `.tar.gz` installe la même chose dans `~/.local/`, sans aucun
+droit particulier — c'est la solution pour un poste sur lequel on n'est pas
+administrateur, un cas fréquent en milieu scolaire.
+
+Aucune dépendance n'est déclarée au-delà de la libc : le binaire embarque
+Python **et** Tcl/Tk, donc `python3-tk` n'a pas à être installé sur la
+machine de l'utilisateur.

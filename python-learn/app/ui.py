@@ -1,20 +1,27 @@
 """Interface graphique de PythonLearn (version enrichie)."""
 
-import random
-import webbrowser
 import pathlib
-from datetime import date
+import random
 import tkinter as tk
-from tkinter import ttk, font, messagebox, simpledialog, filedialog
+import webbrowser
+from datetime import date
+from tkinter import filedialog, font, messagebox, simpledialog, ttk
 
-from content import (CURRICULUM, GLOSSAIRE, total_count, lesson_items,
-                     get_exercice, exercice_count, hints_for, lesson_done,
-                     find_lesson)
+from app import errors, stats
 from app import progress as prog
-from app import errors
-from app import stats
-from app.i18n import Translator, NOMS_LANGUES, LANGUES
 from app.editor import CodeEditor
+from app.i18n import LANGUES, Translator
+from content import (
+    CURRICULUM,
+    GLOSSAIRE,
+    exercice_count,
+    find_lesson,
+    get_exercice,
+    hints_for,
+    lesson_done,
+    lesson_items,
+    total_count,
+)
 
 try:
     from app.icon import ICON_B64
@@ -56,6 +63,10 @@ THEMES = {
 }
 THEME_ORDER = ["dark", "light", "contrast"]
 
+# Délai avant d'écrire le code de l'apprenant sur disque. Sans ce sursis,
+# on réécrirait tout le fichier de progression à CHAQUE touche du clavier.
+DELAI_SAUVEGARDE_MS = 700
+
 
 def _melange(hex1, hex2, t):
     """Mélange deux couleurs #rrggbb (t=0 -> hex1, t=1 -> hex2)."""
@@ -64,7 +75,7 @@ def _melange(hex1, hex2, t):
         return [int(h[i:i + 2], 16) for i in (0, 2, 4)]
     a, b = comp(hex1), comp(hex2)
     m = [round(a[i] + (b[i] - a[i]) * t) for i in range(3)]
-    return "#%02x%02x%02x" % tuple(max(0, min(255, v)) for v in m)
+    return "#{:02x}{:02x}{:02x}".format(*(max(0, min(255, v)) for v in m))
 
 
 def _eclaircir(hexc, t=0.12):
@@ -208,6 +219,7 @@ class PythonLearnApp:
     def __init__(self, root):
         self.root = root
         self.data = prog.load_progress()
+        self._incident = prog.dernier_incident()
         self.theme_name = self.data.get("theme", "dark")
         if self.theme_name not in THEMES:
             self.theme_name = "dark"
@@ -228,6 +240,8 @@ class PythonLearnApp:
         self._echecs_session = 0
         self._tip = None
         self._tip_row = None
+        self._save_after_id = None      # sauvegarde différée en attente
+        self._code_en_attente = None    # (item_id, texte) restant à écrire
 
         self.lesson_level = {}
         for level in CURRICULUM:
@@ -246,8 +260,26 @@ class PythonLearnApp:
         self._refresh_status()
         self._select_first_incomplete()
 
-        if not self.data.get("vu_accueil"):
+        if self._incident:
+            self.root.after(400, self._avertir_incident)
+        elif not self.data.get("vu_accueil"):
             self.root.after(300, self._show_welcome)
+
+    def _avertir_incident(self):
+        """Prévient l'apprenant quand la progression n'a pas pu être lue telle quelle."""
+        code, detail = self._incident
+        self._incident = None
+        cle = ("dlg_incident_restaure" if code == prog.INCIDENT_RESTAURE
+               else "dlg_incident_perdu")
+        messagebox.showwarning(self.tr("dlg_incident_title"),
+                               self.tr(cle, chemin=detail))
+        if not self.data.get("vu_accueil"):
+            self._show_welcome()
+
+    def quitter(self):
+        """Ferme l'application après avoir écrit le code encore en attente."""
+        self._flush_code()
+        self.root.destroy()
 
     # --------------------------------------------------------------- polices
     def _init_fonts(self):
@@ -600,12 +632,12 @@ class PythonLearnApp:
         self.item_to_lesson = {}
         q = self.search_query
         for level in CURRICULUM:
-            lessons = [l for l in level["lessons"]
-                       if not q or q in l["title"].lower()]
+            lessons = [lecon for lecon in level["lessons"]
+                       if not q or q in lecon["title"].lower()]
             if q and not lessons:
                 continue
-            done = sum(1 for l in level["lessons"]
-                       if lesson_done(l, self.data["completed"]))
+            done = sum(1 for lecon in level["lessons"]
+                       if lesson_done(lecon, self.data["completed"]))
             total = len(level["lessons"])
             badge = " 🏅" if level["id"] in self.data["badges"] else ""
             parent = self.tree.insert(
@@ -668,6 +700,7 @@ class PythonLearnApp:
 
     # -------------------------------------------------------------- chargement
     def _load_lesson(self, lesson):
+        self._flush_code()          # le code de la leçon quittée part sur disque
         self.current = lesson
         self.exo_index = 0
         self._revision_item = None
@@ -767,6 +800,7 @@ class PythonLearnApp:
             self.tab_buttons.append(b)
 
     def _load_exercice(self, index):
+        self._flush_code()          # idem entre deux exercices d'un projet
         self.exo_index = index
         exo = get_exercice(self.current, index)
         item_id = lesson_items(self.current)[index]
@@ -861,14 +895,40 @@ class PythonLearnApp:
 
     # -------------------------------------------------------------- actions
     def _on_code_change(self):
-        if self.current and self.current.get("type") != "quiz":
-            item_id = lesson_items(self.current)[self.exo_index]
-            prog.store_code(self.data, item_id, self.editor.get())
+        """Mémorise le code en cours et programme son écriture sur disque.
+
+        On retient l'identifiant de l'exercice MAINTENANT : si l'apprenant
+        change de leçon avant la fin du délai, le code partira bien dans
+        l'exercice où il a été tapé, et pas dans le suivant.
+        """
+        if not self.current or self.current.get("type") == "quiz":
+            return
+        item_id = lesson_items(self.current)[self.exo_index]
+        self._code_en_attente = (item_id, self.editor.get())
+        if self._save_after_id is not None:
+            self.root.after_cancel(self._save_after_id)
+        self._save_after_id = self.root.after(DELAI_SAUVEGARDE_MS, self._flush_code)
+
+    def _flush_code(self):
+        """Écrit sans attendre le code en attente (idempotent).
+
+        Appelé par la minuterie, mais aussi avant tout changement de leçon,
+        avant d'exécuter ou de vérifier, et à la fermeture de l'application.
+        """
+        if self._save_after_id is not None:
+            self.root.after_cancel(self._save_after_id)
+            self._save_after_id = None
+        if self._code_en_attente is None:
+            return
+        item_id, texte = self._code_en_attente
+        self._code_en_attente = None
+        prog.store_code(self.data, item_id, texte)
 
     def run(self):
         if not self.current or self.current.get("type") == "quiz":
             return
-        from app.runner import run_code, inspecter
+        from app.runner import inspecter, run_code
+        self._flush_code()
         self._clear_console()
         result, ns = run_code(self.editor.get())
         if result.output:
@@ -892,6 +952,7 @@ class PythonLearnApp:
         if not self.current or self.current.get("type") == "quiz":
             return
         from app.runner import run_exercise
+        self._flush_code()
         exo = get_exercice(self.current, self.exo_index)
         self._clear_console()
         mode = exo.get("mode") or self.current.get("mode")
@@ -1060,7 +1121,8 @@ class PythonLearnApp:
 
     def _check_level_badge(self, lesson_id):
         level = self.lesson_level[lesson_id]
-        if all(lesson_done(l, self.data["completed"]) for l in level["lessons"]):
+        if all(lesson_done(lecon, self.data["completed"])
+               for lecon in level["lessons"]):
             if prog.award_badge(self.data, level["id"]):
                 self._populate_tree()
                 self._refresh_badges()
@@ -1076,7 +1138,7 @@ class PythonLearnApp:
                             on_cert=lambda lid=level["id"]: self._generer_certificat(lid))
 
     def _refresh_status(self):
-        done = len([i for i in self.data["completed"]])
+        done = len(self.data["completed"])
         total = total_count()
         # ne compte que les items réellement existants
         valides = set()
@@ -1210,8 +1272,8 @@ class PythonLearnApp:
         lesson = find_lesson(lid)
         if lesson is None:
             return
-        for node, l in self.item_to_lesson.items():
-            if l["id"] == lid:
+        for node, lecon in self.item_to_lesson.items():
+            if lecon["id"] == lid:
                 if self.tree.selection() != (node,):
                     self._ignore_next_select = True
                     self.tree.selection_set(node)
@@ -1381,7 +1443,8 @@ class PythonLearnApp:
             for lid in self.data["badges"]:
                 nom = LEVEL_BADGE_NAMES.get(lid, lid)
                 tk.Button(cert, text=f"🎓 {nom}", anchor="w",
-                          command=lambda l=lid: self._generer_certificat(l)).pack(
+                          command=lambda parcours=lid:
+                              self._generer_certificat(parcours)).pack(
                     fill=tk.X, pady=2)
 
     def _show_sandbox(self):
@@ -1408,7 +1471,7 @@ class PythonLearnApp:
         con.tag_configure("muted", foreground=C["muted"])
 
         def lancer():
-            from app.runner import run_code, inspecter
+            from app.runner import inspecter, run_code
             con.configure(state="normal")
             con.delete("1.0", tk.END)
             result, ns = run_code(ed.get(), safe=True)   # bac à sable durci
@@ -1673,7 +1736,8 @@ def launch():
             pass
     sp = _splash(root)
     root.update()
-    PythonLearnApp(root)
+    app = PythonLearnApp(root)
+    root.protocol("WM_DELETE_WINDOW", app.quitter)
 
     def _demarrer():
         def _sortie(a=1.0):

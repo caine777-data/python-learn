@@ -1,2 +1,5 @@
-# Dépendances nécessaires uniquement pour générer l'exécutable
-pyinstaller>=6.0
+# Dépendances nécessaires uniquement pour DÉVELOPPER ou EMPAQUETER.
+# L'application elle-même n'a besoin que de la bibliothèque standard.
+
+pyinstaller>=6.0     # génération des exécutables
+ruff>=0.6            # vérification du style (ruff check .)
