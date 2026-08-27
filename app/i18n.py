@@ -163,6 +163,13 @@ STRINGS = {
         "dlg_solution_none": "Pas de solution prédéfinie ici.",
         "dlg_solution_confirm": "Remplacer ton code par la solution ?",
         "dlg_step_title": "Pas à pas",
+        "con_zombie": ("⚠ {n} exécution(s) précédente(s) tourne(nt) "
+                       "encore en arrière-plan : une boucle refuse de "
+                       "s'arrêter. Ferme et rouvre l'application si "
+                       "elle ralentit."),
+        "err_timeout": ("TimeoutError : exécution interrompue, le "
+                        "programme a tourné trop longtemps "
+                        "(boucle infinie ?)."),
         "dlg_incident_title": "Progression",
         "dlg_incident_restaure": (
             "Ton fichier de progression était illisible : une sauvegarde "
@@ -316,6 +323,11 @@ STRINGS = {
         "dlg_solution_none": "No predefined solution here.",
         "dlg_solution_confirm": "Replace your code with the solution?",
         "dlg_step_title": "Step-by-step",
+        "con_zombie": ("⚠ {n} earlier run(s) still going in the "
+                       "background: a loop refuses to stop. Close and "
+                       "reopen the application if it slows down."),
+        "err_timeout": ("TimeoutError: execution stopped, the program "
+                        "ran for too long (infinite loop?)."),
         "dlg_incident_title": "Progress",
         "dlg_incident_restaure": (
             "Your progress file could not be read, so a backup was "

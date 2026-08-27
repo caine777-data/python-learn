@@ -2,7 +2,7 @@
 
 import unittest
 
-from app.runner import inspecter, run_code, tracer
+from app.runner import inspecter, run_code, tracer, zombies_actifs
 
 
 class TestRunner(unittest.TestCase):
@@ -53,6 +53,29 @@ class TestRunner(unittest.TestCase):
     def test_mode_normal_autorise_os(self):
         res, _ = run_code("import os\nx = os.sep\n", safe=False)
         self.assertIsNone(res.error)
+
+
+class TestInterruption(unittest.TestCase):
+    """Une boucle infinie ne doit jamais figer l'application."""
+
+    def test_boucle_infinie_est_interrompue(self):
+        res, _ = run_code("while True:\n    pass\n", timeout=1.0)
+        self.assertTrue(res.timed_out)
+        self.assertTrue(res.error.startswith("TimeoutError"))
+
+    def test_boucle_qui_attrape_les_exceptions_est_interrompue(self):
+        """« except Exception » n'arrête pas notre interruption."""
+        code = ("while True:\n"
+                "    try:\n"
+                "        x = 1\n"
+                "    except Exception:\n"
+                "        pass\n")
+        res, _ = run_code(code, timeout=1.0)
+        self.assertTrue(res.timed_out)
+
+    def test_code_normal_ne_laisse_rien_tourner(self):
+        run_code("x = sum(range(1000))\n")
+        self.assertEqual(zombies_actifs(), 0)
 
 
 if __name__ == "__main__":

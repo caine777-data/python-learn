@@ -1,0 +1,323 @@
+"""
+Fenêtres secondaires de l'application.
+
+Chacune reçoit l'application principale (`app`) et la palette du thème
+courant (`C`) : elles ne connaissent donc ni le curriculum, ni la
+progression, ce qui les rend déplaçables et lisibles isolément.
+
+  Celebration      confettis après un parcours terminé
+  StepWindow       exécution pas-à-pas, ligne par ligne
+  ExamWindow       examen chronométré
+  FlashcardWindow  cartes de révision recto/verso
+"""
+
+import random
+import tkinter as tk
+from tkinter import ttk
+
+from app import progress as prog
+
+
+class Celebration(tk.Toplevel):
+    """Petite fenêtre festive avec confettis animés."""
+
+    def __init__(self, master, message, C, on_cert=None):
+        super().__init__(master)
+        self.title("Bravo !")
+        self.configure(bg=C["panel"])
+        w, h = 440, 320
+        self.geometry(f"{w}x{h}")
+        self.canvas = tk.Canvas(self, width=w, height=160, bg=C["panel"],
+                                highlightthickness=0)
+        self.canvas.pack()
+        tk.Label(self, text="🏅", bg=C["panel"], font=("", 30)).pack()
+        tk.Label(self, text=message, bg=C["panel"], fg=C["fg"], wraplength=400,
+                 justify="center").pack(pady=6)
+        barre = tk.Frame(self, bg=C["panel"])
+        barre.pack(pady=6)
+        if on_cert:
+            tk.Button(barre, text="🎓 Certificat",
+                      command=lambda: (on_cert(), self.destroy())).pack(side=tk.LEFT, padx=4)
+        tk.Button(barre, text="Super !", command=self.destroy).pack(side=tk.LEFT, padx=4)
+        couleurs = [C["accent"], C["ok"], C["code"], C["err"], C["heading"]]
+        self.parts = []
+        for _ in range(45):
+            x = random.randint(0, w)
+            y = random.randint(-170, 0)
+            r = self.canvas.create_rectangle(
+                x, y, x + 6, y + 11, fill=random.choice(couleurs), outline="")
+            self.parts.append((r, random.uniform(2.5, 6)))
+        self._tick(0)
+        self.after(5000, lambda: self.winfo_exists() and self.destroy())
+
+    def _tick(self, n):
+        if n > 70 or not self.winfo_exists():
+            return
+        for r, sp in self.parts:
+            self.canvas.move(r, 0, sp)
+        self.after(40, lambda: self._tick(n + 1))
+
+
+class StepWindow(tk.Toplevel):
+    """Rejoue une exécution étape par étape, en surlignant la ligne courante."""
+
+    def __init__(self, master, app, etapes, C, err=None):
+        super().__init__(master)
+        self.app = app
+        self.etapes = etapes
+        self.i = 0
+        self.title(app.tr("step_title"))
+        self.configure(bg=C["bg"])
+        self.geometry("520x540")
+        self.entete = tk.Label(self, bg=C["bg"], fg=C["accent"],
+                               font=(self.app.body.cget("family"), 12, "bold"))
+        self.entete.pack(pady=(12, 6))
+        nav = tk.Frame(self, bg=C["bg"])
+        nav.pack()
+        tk.Button(nav, text=app.tr("step_prev"), command=self.prec).pack(side=tk.LEFT, padx=4)
+        tk.Button(nav, text=app.tr("step_next"), command=self.suiv).pack(side=tk.LEFT, padx=4)
+        tk.Label(self, text=app.tr("step_vars"), bg=C["bg"],
+                 fg=C["muted"]).pack(anchor="w", padx=16, pady=(10, 0))
+        self.vars_txt = tk.Text(self, height=8, wrap="word", bg=C["console"], fg=C["fg"],
+                                relief="flat", font=app.code_font, padx=8, pady=6)
+        self.vars_txt.pack(fill=tk.BOTH, expand=True, padx=16, pady=4)
+        tk.Label(self, text=app.tr("step_out"), bg=C["bg"], fg=C["muted"]).pack(
+            anchor="w", padx=16)
+        self.out_txt = tk.Text(self, height=5, wrap="word", bg=C["console"], fg=C["fg"],
+                               relief="flat", font=app.code_font, padx=8, pady=6)
+        self.out_txt.pack(fill=tk.BOTH, expand=True, padx=16, pady=(4, 12))
+        if err:
+            tk.Label(self, text=err, bg=C["bg"], fg=C["err"], wraplength=480).pack(
+                padx=16, pady=(0, 8))
+        self.protocol("WM_DELETE_WINDOW", self.fermer)
+        self.bind("<Right>", lambda e: self.suiv())
+        self.bind("<Left>", lambda e: self.prec())
+        self._afficher()
+
+    def prec(self):
+        if self.i > 0:
+            self.i -= 1
+            self._afficher()
+
+    def suiv(self):
+        if self.i < len(self.etapes) - 1:
+            self.i += 1
+            self._afficher()
+
+    def _afficher(self):
+        e = self.etapes[self.i]
+        ligne = e["ligne"]
+        suffixe = (self.app.tr("step_line", l=ligne) if ligne
+                   else self.app.tr("step_end"))
+        self.entete.configure(
+            text=self.app.tr("step_label", i=self.i + 1, n=len(self.etapes)) + suffixe)
+        ed = self.app.editor.text
+        ed.tag_remove("pasapas", "1.0", "end")
+        if ligne:
+            try:
+                ed.tag_add("pasapas", f"{ligne}.0", f"{ligne}.end")
+                ed.see(f"{ligne}.0")
+            except tk.TclError:
+                pass
+        self.vars_txt.delete("1.0", tk.END)
+        if e["vars"]:
+            for nom, rep in e["vars"]:
+                self.vars_txt.insert(tk.END, f"{nom} = {rep}\n")
+        else:
+            self.vars_txt.insert(tk.END, self.app.tr("step_no_vars") + "\n")
+        self.out_txt.delete("1.0", tk.END)
+        self.out_txt.insert(tk.END, e["sortie"] or self.app.tr("step_no_out"))
+
+    def fermer(self):
+        try:
+            self.app.editor.text.tag_remove("pasapas", "1.0", "end")
+        except Exception:
+            pass
+        self.destroy()
+
+class ExamWindow(tk.Toplevel):
+    """Examen chronométré : enchaîne des questions de quiz et affiche le score."""
+    DUREE = 300  # secondes (5 minutes)
+
+    def __init__(self, master, app, questions, C):
+        super().__init__(master)
+        self.app = app
+        self.tr = app.tr
+        self.questions = questions
+        self.C = C
+        self.i = 0
+        self.bons = 0
+        self.valide = False
+        self.restant = self.DUREE
+        self.title(self.tr("ex_title"))
+        self.configure(bg=C["bg"])
+        self.geometry("560x440")
+
+        barre = tk.Frame(self, bg=C["bg"])
+        barre.pack(fill=tk.X, padx=16, pady=(12, 4))
+        self.compteur = tk.Label(barre, bg=C["bg"], fg=C["muted"],
+                                 font=(app.body.cget("family"), 10, "bold"))
+        self.compteur.pack(side=tk.LEFT)
+        self.chrono = tk.Label(barre, bg=C["bg"], fg=C["accent"],
+                               font=(app.body.cget("family"), 11, "bold"))
+        self.chrono.pack(side=tk.RIGHT)
+
+        self.q_label = tk.Label(self, bg=C["bg"], fg=C["fg"], wraplength=520,
+                                justify="left", font=(app.body.cget("family"), 12))
+        self.q_label.pack(anchor="w", padx=16, pady=(8, 6))
+        self.var = tk.IntVar(value=-1)
+        self.opts_frame = tk.Frame(self, bg=C["bg"])
+        self.opts_frame.pack(fill=tk.X, padx=16)
+        self.retour = tk.Label(self, bg=C["bg"], fg=C["muted"], wraplength=520,
+                               justify="left")
+        self.retour.pack(anchor="w", padx=16, pady=6)
+
+        nav = tk.Frame(self, bg=C["bg"])
+        nav.pack(side=tk.BOTTOM, pady=12)
+        self.btn_valider = ttk.Button(nav, text=self.tr("ex_valider"),
+                                      command=self._valider)
+        self.btn_valider.pack(side=tk.LEFT, padx=4)
+        self.btn_suivant = ttk.Button(nav, text=self.tr("ex_suivant"),
+                                      command=self._suivant)
+
+        self._afficher()
+        self._tic()
+
+    def _tic(self):
+        m, s = divmod(max(0, self.restant), 60)
+        self.chrono.configure(text=self.tr("ex_time", m=m, s=s))
+        if self.restant <= 0:
+            self._terminer(temps_ecoule=True)
+            return
+        self.restant -= 1
+        self._after_id = self.after(1000, self._tic)
+
+    def _afficher(self):
+        q = self.questions[self.i]
+        self.valide = False
+        self.var.set(-1)
+        self.retour.configure(text="")
+        self.compteur.configure(text=self.tr("ex_q", i=self.i + 1, n=len(self.questions)))
+        self.q_label.configure(text=q["question"])
+        for w in self.opts_frame.winfo_children():
+            w.destroy()
+        for idx, opt in enumerate(q["options"]):
+            tk.Radiobutton(self.opts_frame, text=opt, variable=self.var, value=idx,
+                           bg=self.C["bg"], fg=self.C["fg"], selectcolor=self.C["panel"],
+                           activebackground=self.C["bg"], anchor="w",
+                           font=self.app.body).pack(fill=tk.X, anchor="w")
+        self.btn_suivant.pack_forget()
+        self.btn_valider.pack(side=tk.LEFT, padx=4)
+
+    def _valider(self):
+        if self.var.get() < 0 or self.valide:
+            return
+        self.valide = True
+        q = self.questions[self.i]
+        if self.var.get() == q["answer"]:
+            self.bons += 1
+            self.retour.configure(text=self.tr("quiz_good") + q.get("explanation", ""),
+                                  fg=self.C["ok"])
+        else:
+            bonne = q["options"][q["answer"]]
+            self.retour.configure(text=f"{self.tr('quiz_bad')}  ✓ {bonne}",
+                                  fg=self.C["err"])
+        self.btn_valider.pack_forget()
+        self.btn_suivant.pack(side=tk.LEFT, padx=4)
+
+    def _suivant(self):
+        if self.i + 1 >= len(self.questions):
+            self._terminer()
+        else:
+            self.i += 1
+            self._afficher()
+
+    def _terminer(self, temps_ecoule=False):
+        try:
+            self.after_cancel(self._after_id)
+        except Exception:
+            pass
+        for w in list(self.winfo_children()):
+            w.destroy()
+        from datetime import date as _date
+        prog.enregistrer_activite(self.app.data, _date.today().isoformat())
+        self.app._refresh_status()
+        titre = self.tr("ex_temps") if temps_ecoule else self.tr("ex_termine")
+        tk.Label(self, text=titre, bg=self.C["bg"], fg=self.C["accent"],
+                 font=(self.app.body.cget("family"), 16, "bold")).pack(pady=(40, 10))
+        tk.Label(self, text=self.tr("ex_score", bons=self.bons, total=len(self.questions)),
+                 bg=self.C["bg"], fg=self.C["fg"],
+                 font=(self.app.body.cget("family"), 22, "bold")).pack(pady=10)
+        ttk.Button(self, text=self.tr("ex_fermer"), command=self.destroy).pack(pady=16)
+
+
+class FlashcardWindow(tk.Toplevel):
+    """Révision en cartes : recto (terme) / verso (définition)."""
+
+    def __init__(self, master, app, cartes, C):
+        super().__init__(master)
+        self.app = app
+        self.tr = app.tr
+        self.C = C
+        self.cartes = list(cartes)
+        random.shuffle(self.cartes)
+        self.i = 0
+        self.face = False  # False = recto, True = verso
+        self.title(self.tr("fc_title"))
+        self.configure(bg=C["bg"])
+        self.geometry("520x420")
+
+        self.compteur = tk.Label(self, bg=C["bg"], fg=C["muted"],
+                                 font=(app.body.cget("family"), 10, "bold"))
+        self.compteur.pack(pady=(12, 4))
+        self.face_label = tk.Label(self, bg=C["bg"], fg=C["accent"],
+                                   font=(app.body.cget("family"), 10))
+        self.face_label.pack()
+
+        self.carte = tk.Label(self, bg=C["panel"], fg=C["fg"], wraplength=440,
+                              justify="center", font=(app.body.cget("family"), 15),
+                              width=44, height=8)
+        self.carte.pack(fill=tk.BOTH, expand=True, padx=20, pady=12)
+        self.carte.bind("<Button-1>", lambda e: self._retourner())
+
+        nav = tk.Frame(self, bg=C["bg"])
+        nav.pack(pady=10)
+        self.btn_flip = ttk.Button(nav, text=self.tr("fc_flip"), command=self._retourner)
+        self.btn_flip.pack(side=tk.LEFT, padx=4)
+        self.btn_next = ttk.Button(nav, text=self.tr("fc_next"), command=self._suivant)
+        self.btn_next.pack(side=tk.LEFT, padx=4)
+        self._afficher()
+
+    def _afficher(self):
+        self.face = False
+        terme, _ = self.cartes[self.i]
+        self.compteur.configure(text=self.tr("fc_progress", i=self.i + 1, n=len(self.cartes)))
+        self.face_label.configure(text=self.tr("fc_recto"))
+        self.carte.configure(text=terme)
+
+    def _retourner(self):
+        self.face = not self.face
+        terme, definition = self.cartes[self.i]
+        self.face_label.configure(text=self.tr("fc_verso" if self.face else "fc_recto"))
+        self.carte.configure(text=definition if self.face else terme)
+
+    def _suivant(self):
+        if self.i + 1 >= len(self.cartes):
+            self._terminer()
+        else:
+            self.i += 1
+            self._afficher()
+
+    def _terminer(self):
+        for w in list(self.winfo_children()):
+            w.destroy()
+        tk.Label(self, text=self.tr("fc_done"), bg=self.C["bg"], fg=self.C["accent"],
+                 font=(self.app.body.cget("family"), 18, "bold")).pack(pady=(60, 16))
+        nav = tk.Frame(self, bg=self.C["bg"])
+        nav.pack()
+        ttk.Button(nav, text=self.tr("fc_replay"), command=self._rejouer).pack(side=tk.LEFT, padx=4)
+        ttk.Button(nav, text=self.tr("fc_close"), command=self.destroy).pack(side=tk.LEFT, padx=4)
+
+    def _rejouer(self):
+        self.destroy()
+        FlashcardWindow(self.master, self.app, self.cartes, self.C)

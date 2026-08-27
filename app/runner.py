@@ -76,6 +76,44 @@ def _async_raise(thread_id, exctype):
         ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(thread_id), None)
 
 
+# Exécutions qui n'ont pas pu être arrêtées (voir _interrompre). On les
+# garde pour pouvoir en avertir l'apprenant : un thread qui tourne encore
+# en arrière-plan explique une application soudain lente.
+_zombies = []
+
+
+def zombies_actifs():
+    """Nombre d'exécutions précédentes qui tournent encore en arrière-plan."""
+    _zombies[:] = [t for t in _zombies if t.is_alive()]
+    return len(_zombies)
+
+
+def _interrompre(thread, tentatives=6, pause=0.25):
+    """Tente d'arrêter un thread d'exécution, avec insistance.
+
+    Une seule injection ne suffit pas toujours : le code de l'apprenant peut
+    attraper l'exception, et gérer les exceptions est justement au programme.
+    On réessaie donc plusieurs fois, en alternant KeyboardInterrupt et
+    SystemExit — aucune des deux n'est arrêtée par un « except Exception ».
+
+    Limite assumée : un « except: » nu (ou « except BaseException »)
+    à l'intérieur d'une boucle infinie avale tout, y compris ceci. Seul
+    l'arrêt du processus en viendrait à bout, et exécuter chaque exercice
+    dans un processus séparé coûterait plusieurs secondes de démarrage à
+    chaque « Exécuter » — le remède serait pire que le mal. Ces cas sont
+    donc recensés dans _zombies et signalés à l'apprenant.
+
+    Renvoie True si le thread s'est bien arrêté.
+    """
+    for essai in range(tentatives):
+        if not thread.is_alive():
+            return True
+        _async_raise(thread.ident,
+                     SystemExit if essai % 2 else KeyboardInterrupt)
+        thread.join(pause)
+    return not thread.is_alive()
+
+
 def run_code(code, namespace=None, timeout=6.0, safe=False, allow=None):
     """
     Exécute `code` et capture sa sortie standard.
@@ -110,13 +148,16 @@ def run_code(code, namespace=None, timeout=6.0, safe=False, allow=None):
 
     timed_out = False
     if thread.is_alive():
-        _async_raise(thread.ident, KeyboardInterrupt)
-        thread.join(1.0)
         timed_out = True
+        if not _interrompre(thread):
+            _zombies.append(thread)
 
     error_text = None
     if timed_out:
-        error_text = "Exécution interrompue : trop longue (boucle infinie ?)."
+        # Préfixé comme une vraie exception Python : c'est ce qui permet
+        # à errors.expliquer() de reconnaître le cas, dans les deux langues.
+        error_text = ("TimeoutError: exécution interrompue, le programme a "
+                      "tourné trop longtemps (boucle infinie ?).")
     elif holder["error"] is not None:
         exc = holder["error"]
         error_text = "".join(

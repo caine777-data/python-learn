@@ -258,9 +258,11 @@ python-learn/
 │   └── build.yml            # installateurs Windows / macOS / Linux + Release
 ├── app/
 │   ├── ui.py                # interface principale
+│   ├── theme.py             # les 3 palettes de couleurs
+│   ├── windows.py           # fenêtres : pas-à-pas, examen, flashcards…
 │   ├── editor.py            # éditeur (coloration, n° de ligne, confort)
 │   ├── runner.py            # exécution + vérification + bac à sable
-│   ├── errors.py            # explication pédagogique des erreurs
+│   ├── errors.py            # explication pédagogique des erreurs (FR / EN)
 │   ├── stats.py             # streak, répétition espacée, certificat
 │   ├── i18n.py              # traductions FR / EN de l'interface
 │   ├── progress.py          # sauvegarde (atomique) de la progression
