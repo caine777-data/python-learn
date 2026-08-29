@@ -1,5 +1,6 @@
 """Tests du moteur d'exécution (inspecteur de variables, pas-à-pas)."""
 
+import sys
 import unittest
 
 from app.runner import inspecter, run_code, tracer, zombies_actifs
@@ -56,26 +57,61 @@ class TestRunner(unittest.TestCase):
 
 
 class TestInterruption(unittest.TestCase):
-    """Une boucle infinie ne doit jamais figer l'application."""
+    """Une boucle infinie ne doit jamais figer l'application.
+
+    Ces boucles dorment quelques millisecondes à chaque tour plutôt que de
+    tourner à plein régime. Si l'interruption venait à échouer sur une
+    version de Python, le thread survivant ne monopoliserait pas un cœur
+    pendant tout le reste de la suite — l'échec resterait lisible au lieu
+    de tout ralentir jusqu'au blocage.
+    """
+
+    BOUCLE = ("import time\n"
+              "while True:\n"
+              "    time.sleep(0.005)\n")
+
+    BOUCLE_QUI_ATTRAPE = ("import time\n"
+                          "while True:\n"
+                          "    try:\n"
+                          "        time.sleep(0.005)\n"
+                          "    except Exception:\n"
+                          "        pass\n")
+
+    def tearDown(self):
+        self.assertEqual(
+            zombies_actifs(), 0,
+            "une exécution n'a pas pu être arrêtée : elle continuerait de "
+            "tourner en arrière-plan")
 
     def test_boucle_infinie_est_interrompue(self):
-        res, _ = run_code("while True:\n    pass\n", timeout=1.0)
+        res, _ = run_code(self.BOUCLE, timeout=1.0)
         self.assertTrue(res.timed_out)
         self.assertTrue(res.error.startswith("TimeoutError"))
 
     def test_boucle_qui_attrape_les_exceptions_est_interrompue(self):
-        """« except Exception » n'arrête pas notre interruption."""
-        code = ("while True:\n"
-                "    try:\n"
-                "        x = 1\n"
-                "    except Exception:\n"
-                "        pass\n")
-        res, _ = run_code(code, timeout=1.0)
+        """« except Exception » n'arrête ni KeyboardInterrupt ni SystemExit."""
+        res, _ = run_code(self.BOUCLE_QUI_ATTRAPE, timeout=1.0)
+        self.assertTrue(res.timed_out)
+
+    def test_boucle_de_calcul_pur_est_interrompue(self):
+        """Le cas le plus courant : une boucle qui ne rend jamais la main."""
+        res, _ = run_code("while True:\n    pass\n", timeout=1.0)
         self.assertTrue(res.timed_out)
 
     def test_code_normal_ne_laisse_rien_tourner(self):
         run_code("x = sum(range(1000))\n")
         self.assertEqual(zombies_actifs(), 0)
+
+    def test_la_sortie_standard_revient_au_programme(self):
+        """Un thread bloqué ne doit pas rendre le reste du programme muet.
+
+        contextlib détourne sys.stdout globalement : un thread qui ne meurt
+        jamais ne ressort jamais de son bloc « with », et tout le programme
+        cesserait alors d'afficher quoi que ce soit.
+        """
+        avant = sys.stdout
+        run_code("while True:\n    pass\n", timeout=0.5)
+        self.assertIs(sys.stdout, avant)
 
 
 if __name__ == "__main__":

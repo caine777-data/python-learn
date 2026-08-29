@@ -142,6 +142,12 @@ def run_code(code, namespace=None, timeout=6.0, safe=False, allow=None):
         except BaseException as exc:  # noqa: BLE001  (on capture aussi notre interruption)
             holder["error"] = exc
 
+    # On note la sortie standard AVANT de lancer le thread : contextlib
+    # la détourne globalement, et un thread qui ne meurt jamais ne ressort
+    # jamais de son bloc « with » — la sortie resterait alors détournée vers
+    # son tampon pour le programme entier, qui deviendrait muet.
+    sortie_avant, erreur_avant = sys.stdout, sys.stderr
+
     thread = threading.Thread(target=target, daemon=True)
     thread.start()
     thread.join(timeout)
@@ -151,6 +157,7 @@ def run_code(code, namespace=None, timeout=6.0, safe=False, allow=None):
         timed_out = True
         if not _interrompre(thread):
             _zombies.append(thread)
+            sys.stdout, sys.stderr = sortie_avant, erreur_avant
 
     error_text = None
     if timed_out:

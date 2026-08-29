@@ -30,6 +30,7 @@ jobs:
   preparer:
     name: Vérifier et déterminer la version
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     outputs:
       version: ${{ steps.calcul.outputs.version }}
     steps:
@@ -73,6 +74,7 @@ jobs:
     name: ${{ matrix.nom }}
     needs: preparer
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -196,6 +198,7 @@ jobs:
     needs: [preparer, construire]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Récupérer tous les installateurs
         uses: actions/download-artifact@v4
