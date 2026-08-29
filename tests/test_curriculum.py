@@ -9,6 +9,7 @@ chaque quiz a une réponse cohérente. Lancé en local et par la CI :
 
 import unittest
 
+from app import exercices
 from app.runner import run_exercise
 from content import CURRICULUM, exercice_count, get_exercice, lesson_items
 
@@ -43,6 +44,36 @@ class TestCurriculum(unittest.TestCase):
                     self.assertIn("answer", lesson)
                     self.assertIsInstance(lesson["answer"], int)
                     self.assertTrue(0 <= lesson["answer"] < len(lesson["options"]))
+
+    def test_exercices_predire_sont_lisibles(self):
+        """Le programme a prédire doit s'exécuter et afficher quelque chose."""
+        for level in CURRICULUM:
+            for lesson in level["lessons"]:
+                if lesson.get("type") != "predire":
+                    continue
+                with self.subTest(lecon=lesson["id"]):
+                    code = lesson.get("code", "")
+                    self.assertTrue(code.strip(), "champ « code » vide")
+                    _, sortie, erreur = exercices.verifier_prediction(code, "")
+                    self.assertIsNone(erreur, f"le programme échoue : {erreur}")
+                    self.assertTrue(
+                        sortie.strip(),
+                        "le programme n'affiche rien : il n'y a rien à prédire")
+
+    def test_exercices_ordre_sont_resolubles(self):
+        """L'ordre annoncé doit être une solution, et le mélange ne pas la donner."""
+        for level in CURRICULUM:
+            for lesson in level["lessons"]:
+                if lesson.get("type") != "ordre":
+                    continue
+                with self.subTest(lecon=lesson["id"]):
+                    lignes = exercices.lignes_de(lesson)
+                    self.assertGreaterEqual(len(lignes), 2)
+                    reussi, message = exercices.verifier_ordre(lignes, lesson)
+                    self.assertTrue(reussi, message)
+                    self.assertNotEqual(
+                        exercices.melanger(lignes, lesson["id"]), lignes,
+                        "l'exercice serait déjà résolu à l'ouverture")
 
     def test_identifiants_uniques(self):
         vus = set()

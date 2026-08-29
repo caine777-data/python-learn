@@ -13,11 +13,11 @@
 ; à partir du tag Git). Sans cela, on retombe sur la valeur ci-dessous, qui
 ; doit rester alignée sur app/version.py.
 #ifndef MaVersion
-  #define MaVersion "1.0.0"
+  #define MaVersion "1.1.0"
 #endif
 
 #define MonApp "PythonLearn"
-#define MonAuteur "C. Monna"
+#define MonAuteur "Cédric Monna"
 #define MonExe "PythonLearn.exe"
 #define MonSite "https://github.com/cedricmonna/python-learn"
 

@@ -14,6 +14,8 @@ from app import progress as prog
 from app.editor import CodeEditor
 from app.i18n import LANGUES, Translator
 from app.theme import THEME_ORDER, THEMES, assombrir, eclaircir
+from app.version import APP_NAME, AUTEUR, DEPOT, __version__
+from app.vues_exercices import VueOrdre, VuePrediction
 from app.windows import Celebration, ExamWindow, FlashcardWindow, StepWindow
 from content import (
     CURRICULUM,
@@ -37,6 +39,10 @@ except Exception:
 # Délai avant d'écrire le code de l'apprenant sur disque. Sans ce sursis,
 # on réécrirait tout le fichier de progression à CHAQUE touche du clavier.
 DELAI_SAUVEGARDE_MS = 700
+
+# Types de leçons qui n'utilisent pas l'éditeur de code : les actions
+# « Exécuter », « Indice », « Exporter »… n'ont pas de sens pour elles.
+_SANS_EDITEUR = ("quiz", "predire", "ordre")
 
 
 LEVEL_BADGE_NAMES = {
@@ -112,6 +118,39 @@ class PythonLearnApp:
                                self.tr(cle, chemin=detail))
         if not self.data.get("vu_accueil"):
             self._show_welcome()
+
+    def _a_propos(self):
+        """Fenêtre « À propos » : qui a fait l'application, et sous quelle licence."""
+        C = self.C
+        win = tk.Toplevel(self.root)
+        win.title(self.tr("ap_title"))
+        win.configure(bg=C["panel"])
+        win.resizable(False, False)
+        tk.Frame(win, bg=C["accent"], height=5).pack(fill=tk.X, side=tk.TOP)
+
+        tk.Label(win, text="🐍", bg=C["panel"], font=("", 46)).pack(pady=(18, 0))
+        tk.Label(win, text=APP_NAME, bg=C["panel"], fg=C["accent"],
+                 font=("", 22, "bold")).pack()
+        tk.Label(win, text=self.tr("ap_version", v=__version__),
+                 bg=C["panel"], fg=C["muted"]).pack(pady=(2, 12))
+
+        tk.Label(win, text=self.tr("ap_par"), bg=C["panel"], fg=C["muted"],
+                 font=("", 9)).pack()
+        tk.Label(win, text=AUTEUR, bg=C["panel"], fg=C["fg"],
+                 font=("", 15, "bold")).pack(pady=(0, 14))
+
+        tk.Label(win, text=self.tr("ap_desc"), bg=C["panel"], fg=C["fg"],
+                 wraplength=380, justify="center").pack(padx=24)
+        tk.Label(win, text=self.tr("ap_licence"), bg=C["panel"], fg=C["muted"],
+                 font=("", 9)).pack(pady=(14, 4))
+
+        barre = ttk.Frame(win, style="Panel.TFrame")
+        barre.pack(pady=(6, 18))
+        ttk.Button(barre, text=self.tr("ap_depot"),
+                   command=lambda: webbrowser.open(DEPOT)).pack(side=tk.LEFT, padx=4)
+        ttk.Button(barre, text=self.tr("ap_fermer"),
+                   command=win.destroy).pack(side=tk.LEFT, padx=4)
+        win.bind("<Escape>", lambda e: win.destroy())
 
     def _ouvrir_mes_lecons(self):
         """Ouvre le dossier des leçons personnelles dans l'explorateur.
@@ -200,6 +239,7 @@ class PythonLearnApp:
         self._tbtn(toolbar, "tb_lecons", self._ouvrir_mes_lecons).pack(
             side=tk.LEFT, padx=6, pady=4)
         self._tbtn(toolbar, "tb_reset", self._reset_progress).pack(side=tk.RIGHT, padx=4, pady=4)
+        self._tbtn(toolbar, "tb_apropos", self._a_propos).pack(side=tk.RIGHT, pady=4)
 
         outer = ttk.PanedWindow(self.root, orient=tk.HORIZONTAL)
         outer.pack(fill=tk.BOTH, expand=True, padx=8, pady=(6, 0))
@@ -268,6 +308,9 @@ class PythonLearnApp:
         main.add(self.bottom, weight=4)
         self._build_exercise_frame()
         self._build_quiz_frame()
+        # Vues des exercices qui ne s'écrivent pas dans l'éditeur.
+        self.vue_predire = VuePrediction(self.bottom, self)
+        self.vue_ordre = VueOrdre(self.bottom, self)
 
         # barre d'état
         status = ttk.Frame(self.root, style="Panel.TFrame")
@@ -417,6 +460,9 @@ class PythonLearnApp:
         self.tree.tag_configure("done", foreground=C["ok"])
         self.tree.tag_configure("level", foreground=C["heading"])
 
+        self.vue_predire.appliquer_theme(C)
+        self.vue_ordre.appliquer_theme(C)
+
         label = self.C["label_en"] if self.lang == "en" else self.C["label"]
         self.theme_btn.configure(text=self.tr("tb_theme", label=label))
         self._refresh_badges()
@@ -440,7 +486,9 @@ class PythonLearnApp:
         label = self.C["label_en"] if self.lang == "en" else self.C["label"]
         self.theme_btn.configure(text=self.tr("tb_theme", label=label))
         self._refresh_status()
-        if self.current and self.current.get("type") != "quiz":
+        self.vue_predire.traduire()
+        self.vue_ordre.traduire()
+        if self.current and self.current.get("type") not in ("quiz", "predire", "ordre"):
             self.editor._verifier_syntaxe()
 
     def cycle_theme(self):
@@ -583,15 +631,28 @@ class PythonLearnApp:
         self.lesson_title.configure(text=lesson["title"])
         self._maj_favori_btn()
         self._render_content(lesson.get("content", ""))
-        if lesson.get("type") == "quiz":
-            self.exo_frame.pack_forget()
+        self._masquer_cadres()
+        type_lecon = lesson.get("type")
+        if type_lecon == "quiz":
             self.quiz_frame.pack(fill=tk.BOTH, expand=True)
             self._load_quiz(lesson)
+        elif type_lecon == "predire":
+            self.vue_predire.afficher()
+            self.vue_predire.charger(lesson)
+        elif type_lecon == "ordre":
+            self.vue_ordre.afficher()
+            self.vue_ordre.charger(lesson)
         else:
-            self.quiz_frame.pack_forget()
             self.exo_frame.pack(fill=tk.BOTH, expand=True)
             self._build_exo_tabs()
             self._load_exercice(0)
+
+    def _masquer_cadres(self):
+        """Retire de l'affichage toutes les vues, avant d'en montrer une."""
+        self.exo_frame.pack_forget()
+        self.quiz_frame.pack_forget()
+        self.vue_predire.masquer()
+        self.vue_ordre.masquer()
 
     def _maj_favori_btn(self):
         if not self.current:
@@ -776,7 +837,7 @@ class PythonLearnApp:
         change de leçon avant la fin du délai, le code partira bien dans
         l'exercice où il a été tapé, et pas dans le suivant.
         """
-        if not self.current or self.current.get("type") == "quiz":
+        if not self.current or self.current.get("type") in _SANS_EDITEUR:
             return
         item_id = lesson_items(self.current)[self.exo_index]
         self._code_en_attente = (item_id, self.editor.get())
@@ -800,7 +861,7 @@ class PythonLearnApp:
         prog.store_code(self.data, item_id, texte)
 
     def run(self):
-        if not self.current or self.current.get("type") == "quiz":
+        if not self.current or self.current.get("type") in _SANS_EDITEUR:
             return
         from app.runner import inspecter, run_code
         self._flush_code()
@@ -825,7 +886,7 @@ class PythonLearnApp:
         self.feedback.configure(text="")
 
     def check(self):
-        if not self.current or self.current.get("type") == "quiz":
+        if not self.current or self.current.get("type") in _SANS_EDITEUR:
             return
         from app.runner import run_exercise
         self._flush_code()
@@ -868,6 +929,20 @@ class PythonLearnApp:
             if self._echecs_session >= 2 and self._hints:
                 self._write("\n" + self.tr("nudge_indice") + "\n", "hint")
             self.feedback.configure(text=self.tr("fb_fail"), foreground=self.C["err"])
+
+    def valider_item(self, item_id, message_banniere=None):
+        """Enregistre la réussite d'un item, quel que soit son type.
+
+        Point d'entrée commun aux exercices classiques et aux vues
+        « prédis la sortie » et « remets dans l'ordre », pour que la
+        progression, la série de jours et la révision espacée soient
+        traitées partout de la même façon.
+        """
+        self._echecs_session = 0
+        self._mark_done(item_id)
+        self._apres_reussite(item_id)
+        if message_banniere:
+            self._show_banner(message_banniere, self.C["ok"])
 
     def _apres_reussite(self, item_id):
         """Enregistre l'activité du jour et planifie la prochaine révision."""
@@ -982,7 +1057,7 @@ class PythonLearnApp:
                 foreground=self.C["err"])
 
     def _exporter_py(self):
-        if not self.current or self.current.get("type") == "quiz":
+        if not self.current or self.current.get("type") in _SANS_EDITEUR:
             return
         chemin = filedialog.asksaveasfilename(
             defaultextension=".py", initialfile=f"{self.current['id']}.py",
@@ -996,7 +1071,7 @@ class PythonLearnApp:
             messagebox.showinfo(self.tr("dlg_export_title"), self.tr("dlg_export_fail"))
 
     def _pas_a_pas(self):
-        if not self.current or self.current.get("type") == "quiz":
+        if not self.current or self.current.get("type") in _SANS_EDITEUR:
             return
         from app.runner import tracer
         exo = get_exercice(self.current, self.exo_index)
@@ -1126,7 +1201,8 @@ class PythonLearnApp:
 
     def _ouvrir_antiseche(self):
         from content.cheatsheet import CHEATSHEET
-        html = stats.cheatsheet_html(self.tr("cheat_title"), CHEATSHEET)
+        html = stats.cheatsheet_html(self.tr("cheat_title"), CHEATSHEET,
+                                     auteur=AUTEUR)
         try:
             fichier = prog.DATA_DIR / "antiseche.html"
             prog.DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -1237,7 +1313,9 @@ class PythonLearnApp:
                 parent=self.root) or self.tr("dlg_cert_default")
             prog.set_nom(self.data, nom)
         parcours = LEVEL_BADGE_NAMES.get(level_id, level_id)
-        html = stats.certificat_html(nom, parcours, date.today().strftime("%d/%m/%Y"))
+        html = stats.certificat_html(nom, parcours,
+                                     date.today().strftime("%d/%m/%Y"),
+                                     auteur=AUTEUR)
         dossier = prog.DATA_DIR / "certificats"
         try:
             dossier.mkdir(parents=True, exist_ok=True)
@@ -1440,6 +1518,8 @@ def _splash(root):
              font=("", 25, "bold")).pack()
     tk.Label(sp, text="Apprendre Python, pas à pas", bg=C["panel"],
              fg=C["muted"]).pack(pady=(2, 0))
+    tk.Label(sp, text="par " + AUTEUR, bg=C["panel"], fg=C["muted"],
+             font=("", 9)).pack(pady=(10, 0))
     try:
         sp.attributes("-topmost", True)
         sp.attributes("-alpha", 0.0)

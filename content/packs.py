@@ -122,8 +122,32 @@ def _valider_lecon(lecon, rang, ids_pris, problemes):
         problemes.append(f"{ou} : « title » manquant (le titre affiché).")
         return False
 
-    if lecon.get("type") == "quiz":
+    type_lecon = lecon.get("type")
+    if type_lecon == "quiz":
         if not _valider_quiz(lecon, ou, problemes):
+            return False
+        ids_pris.add(identifiant)
+        return True
+
+    if type_lecon == "predire":
+        code = lecon.get("code")
+        if not _est_texte(code) or not code.strip():
+            problemes.append(
+                f"{ou} : un exercice « predire » doit fournir le programme "
+                "à lire dans le champ « code ».")
+            return False
+        ids_pris.add(identifiant)
+        return True
+
+    if type_lecon == "ordre":
+        lignes = lecon.get("lignes")
+        if not isinstance(lignes, list) or len(lignes) < 2:
+            problemes.append(
+                f"{ou} : un exercice « ordre » doit fournir au moins deux "
+                "« lignes » à remettre dans l'ordre.")
+            return False
+        if not all(_est_texte(ligne) for ligne in lignes):
+            problemes.append(f"{ou} : les « lignes » doivent être des textes.")
             return False
         ids_pris.add(identifiant)
         return True
@@ -282,6 +306,38 @@ def modele_pack():
                 "starter": "notes = [12, 15, 18]\nmoyenne = \n",
                 "check": "assert moyenne == 15, 'la moyenne devrait valoir 15'",
                 "solution": "notes = [12, 15, 18]\nmoyenne = sum(notes) / len(notes)\n",
+            },
+            {
+                "id": "moncours-03",
+                "type": "predire",
+                "title": "Devine ce que ça affiche",
+                "content": (
+                    "## Lire avant d'exécuter\n\n"
+                    "Avant de lancer un programme, on peut le lire et prévoir "
+                    "ce qu'il va faire. C'est le meilleur moyen de progresser."
+                ),
+                "code": "print(2 + 3)\nprint('2' + '3')\n",
+                "explanation": (
+                    "Entre guillemets, « 2 » et « 3 » sont des textes : "
+                    "« + » les colle bout à bout au lieu de les additionner."
+                ),
+            },
+            {
+                "id": "moncours-04",
+                "type": "ordre",
+                "title": "Remets le programme dans l'ordre",
+                "content": (
+                    "## Retrouver l'ordre\n\n"
+                    "Les lignes ont été mélangées. Remets-les dans le bon "
+                    "ordre pour que le programme affiche la somme."
+                ),
+                "lignes": [
+                    "total = 0",
+                    "for nombre in [1, 2, 3]:",
+                    "    total = total + nombre",
+                    "print(total)",
+                ],
+                "expected_output": "6",
             },
             {
                 "id": "moncours-quiz",

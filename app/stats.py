@@ -126,8 +126,9 @@ def dus(srs, today, completed):
 
 
 # ----------------------------------------------------------------- certificat
-def certificat_html(nom, parcours, date_str):
+def certificat_html(nom, parcours, date_str, auteur=None):
     """Renvoie le HTML d'un certificat imprimable (autonome, sans dépendance)."""
+    signature = f" — par {auteur}" if auteur else ""
     return f"""<!DOCTYPE html>
 <html lang="fr"><head><meta charset="utf-8">
 <title>Certificat — {parcours}</title>
@@ -154,19 +155,20 @@ def certificat_html(nom, parcours, date_str):
   <div class="ligne"></div>
   <p>a terminé avec succès le parcours</p>
   <div class="parcours">{parcours}</div>
-  <div class="pied"><span>PythonLearn 🐍</span><span>{date_str}</span></div>
+  <div class="pied"><span>PythonLearn 🐍{signature}</span><span>{date_str}</span></div>
 </div>
 <script>window.onload = () => {{ /* imprimable via Ctrl+P */ }};</script>
 </body></html>"""
 
 
-def cheatsheet_html(titre, sections):
+def cheatsheet_html(titre, sections, auteur=None):
     """Antisèche imprimable (HTML autonome) à partir de sections.
 
     `sections` = liste de (titre_section, [(code, explication), ...]).
     """
     import html as _html
 
+    pied = f" — par {auteur}" if auteur else ""
     blocs = []
     for nom_section, lignes in sections:
         items = "\n".join(
@@ -208,5 +210,5 @@ def cheatsheet_html(titre, sections):
   <div class="grid">
 {corps}
   </div>
-  <p class="pied">PythonLearn 🐍 — la syntaxe essentielle</p>
+  <p class="pied">PythonLearn 🐍 — la syntaxe essentielle{_html.escape(pied)}</p>
 </body></html>"""

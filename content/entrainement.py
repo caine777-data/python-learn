@@ -1,8 +1,10 @@
 """Parcours — Entraînement : débogage et exercices à trous.
 
-Illustre deux nouveaux modes d'exercice :
-- mode "debug"  : le starter contient un bug à corriger ;
-- mode "trous"  : le starter contient des ____ à compléter.
+Illustre quatre façons de travailler autrement que par la seule écriture :
+- mode "debug"   : le starter contient un bug à corriger ;
+- mode "trous"   : le starter contient des ____ à compléter ;
+- type "predire" : prévoir la sortie AVANT d'exécuter ;
+- type "ordre"   : remettre dans l'ordre des lignes mélangées.
 """
 
 LEVEL = {
@@ -117,6 +119,85 @@ comparaison (attention : 10 doit compter comme réussi).""",
                         '    return "échec"\n',
             "hints": ["« supérieur ou égal » se note >=.",
                       "Avec >, la note 10 serait refusée à tort : utilise >=."],
+        },
+        # ------------------------------------------------- PRÉDIS LA SORTIE
+        {
+            "id": "pre-01",
+            "type": "predire",
+            "title": "Prédis : plus n'est pas toujours additionner",
+            "content": """## Lire avant d'exécuter
+
+Le moyen le plus sûr de progresser est de **prévoir** ce qu'un programme
+va faire, puis de vérifier. Si ta prédiction est fausse, tu viens
+d'apprendre quelque chose de précis.
+
+Ici, le signe `+` apparaît trois fois — mais ne fait pas la même chose
+selon ce qu'on lui donne.""",
+            "code": "print(2 + 3)\nprint('2' + '3')\nprint('2' * 3)\n",
+            "explanation": (
+                "Entre guillemets, « 2 » et « 3 » sont du TEXTE : « + » les "
+                "colle bout à bout (23) et « * » répète (222). Sans "
+                "guillemets, ce sont des nombres, et « + » additionne (5)."
+            ),
+        },
+        {
+            "id": "pre-02",
+            "type": "predire",
+            "title": "Prédis : la boucle qui ne change rien",
+            "content": """## Un piège très courant
+
+Cette boucle a l'air de multiplier chaque nombre par 10. Regarde bien ce
+qui est affiché **à la fin**, et demande-toi ce que `n` représente
+vraiment à l'intérieur de la boucle.""",
+            "code": (
+                "nombres = [1, 2, 3]\n"
+                "for n in nombres:\n"
+                "    n = n * 10\n"
+                "print(nombres)\n"
+            ),
+            "explanation": (
+                "`n` est une COPIE de la valeur, pas la case de la liste : la "
+                "modifier ne touche pas `nombres`. Pour changer la liste, il "
+                "faut écrire dedans, par exemple avec `nombres[i] = ...`."
+            ),
+        },
+        # --------------------------------------------- REMETS DANS L'ORDRE
+        {
+            "id": "ord-01",
+            "type": "ordre",
+            "title": "Remets dans l'ordre : additionner une liste",
+            "content": """## Retrouver la structure
+
+Les lignes d'un programme correct ont été mélangées. Remets-les dans le
+bon ordre pour qu'il affiche la somme des nombres.
+
+Réfléchis à ce qui doit exister **avant** d'être utilisé : on ne peut pas
+ajouter à un total qui n'a pas encore été créé.""",
+            "lignes": [
+                "total = 0",
+                "for nombre in [4, 7, 2]:",
+                "    total = total + nombre",
+                "print(total)",
+            ],
+            "expected_output": "13",
+        },
+        {
+            "id": "ord-02",
+            "type": "ordre",
+            "title": "Remets dans l'ordre : une fonction avec condition",
+            "content": """## L'ordre d'une fonction
+
+Ici l'indentation te donne des indices : les lignes décalées sont
+**à l'intérieur** de quelque chose. Une fonction doit aussi être définie
+avant d'être appelée.""",
+            "lignes": [
+                "def etiquette(age):",
+                "    if age >= 18:",
+                "        return 'majeur'",
+                "    return 'mineur'",
+                "print(etiquette(20))",
+            ],
+            "expected_output": "majeur",
         },
     ],
 }

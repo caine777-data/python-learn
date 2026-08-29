@@ -16,6 +16,7 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from app import exercices
 from app.runner import run_exercise
 from content import packs
 
@@ -46,8 +47,8 @@ class TestModele(unittest.TestCase):
 
     def test_les_solutions_du_modele_passent_leurs_tests(self):
         for lecon in self.modele["lecons"]:
-            if lecon.get("type") == "quiz":
-                continue
+            if lecon.get("type") in ("quiz", "predire", "ordre"):
+                continue        # ces types ont leur propre vérification
             with self.subTest(lecon=lecon["id"]):
                 _, reussi, message = run_exercise(
                     lecon.get("solution", ""),
@@ -67,6 +68,26 @@ class TestModele(unittest.TestCase):
             depot.read_text(encoding="utf-8"), packs.modele_pack(),
             "exemples/mon-cours.json ne correspond plus à modele_pack() ; "
             "régénère-le avec : python main.py --exemple-pack")
+
+    def test_les_exercices_speciaux_du_modele_fonctionnent(self):
+        """Le modèle montre aussi « predire » et « ordre » : ils doivent marcher."""
+        types_vus = set()
+        for lecon in self.modele["lecons"]:
+            type_lecon = lecon.get("type")
+            types_vus.add(type_lecon)
+            if type_lecon == "predire":
+                with self.subTest(lecon=lecon["id"]):
+                    _, sortie, erreur = exercices.verifier_prediction(
+                        lecon["code"], "")
+                    self.assertIsNone(erreur)
+                    self.assertTrue(sortie.strip())
+            elif type_lecon == "ordre":
+                with self.subTest(lecon=lecon["id"]):
+                    lignes = exercices.lignes_de(lecon)
+                    reussi, message = exercices.verifier_ordre(lignes, lecon)
+                    self.assertTrue(reussi, message)
+        self.assertIn("predire", types_vus, "le modèle devrait montrer « predire »")
+        self.assertIn("ordre", types_vus, "le modèle devrait montrer « ordre »")
 
     def test_le_quiz_du_modele_est_coherent(self):
         quiz = [lecon for lecon in self.modele["lecons"]

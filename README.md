@@ -1,5 +1,7 @@
 # PythonLearn 🐍
 
+**Conçu et réalisé par Cédric Monna** — logiciel libre sous licence MIT.
+
 Une application de bureau pour **apprendre Python pas à pas, du niveau
 débutant au niveau expert**. Chaque leçon mêle une explication claire et
 un exercice que l'on résout dans un éditeur intégré : le code s'exécute
@@ -17,7 +19,8 @@ pour de vrai et la réussite est vérifiée automatiquement.
 - ✅ **Bac à sable** libre (« Brouillon ») pour expérimenter sans exercice
 - ✅ **Indices progressifs** (dévoilés un par un) avant de révéler la solution
 - ✅ **Quiz (QCM) à la fin de chaque parcours** et **projets guidés multi-étapes**
-- ✅ Exercices variés : à compléter (**trous**) et à réparer (**débogue ce code**), en plus des exercices classiques
+- ✅ Exercices variés : à compléter (**trous**), à réparer (**débogue ce code**),
+  **prédire la sortie** avant d'exécuter, et **remettre des lignes dans l'ordre**
 - ✅ **3 thèmes** (sombre / clair / contraste élevé) + **zoom** du texte
 - ✅ **Glossaire** intégré, **mode révision**, **recherche** de leçon, lien vers la doc Python
 - ✅ **Antisèche imprimable** (mémo de syntaxe HTML) et **flashcards** de révision
@@ -115,7 +118,7 @@ parcours est entièrement consacré aux **projets guidés**.
 **Projets guidés** (multi-étapes, validés exercice par exercice)
 
 14. **Projets guidés** — le **Pendu**, une **liste de tâches**, un **bloc-notes** Tkinter, un **convertisseur de devises**, le **Jeu de la vie** de Conway, et le **hachage sécurisé** d'un mot de passe.
-15. **Entraînement (débogage & trous)** — réparer des bugs classiques (borne, condition inversée, IndexError) et compléter du code à trous.
+15. **Entraînement** — réparer des bugs classiques (borne, condition inversée, IndexError), compléter du code à trous, **prédire la sortie** d'un programme avant de l'exécuter, et **remettre dans l'ordre** les lignes d'un programme mélangé.
 
 ---
 
@@ -259,11 +262,47 @@ Tu peux aussi partir du fichier [`exemples/mon-cours.json`](exemples/mon-cours.j
 | `solution` | la solution révélable |
 | `hints` | les indices, dévoilés un par un |
 
-Une leçon peut aussi être un **quiz** (`"type": "quiz"` avec `question`,
-`options` et `answer`, le numéro de la bonne option en partant de 0), ou un
-**projet en plusieurs étapes** (une liste `exercices`). Le détail des champs
-est dans la section suivante : le format est exactement le même que celui
-des parcours livrés avec l'application.
+### Les cinq sortes de leçons
+
+| `type` | Ce que fait l'apprenant | Champs propres |
+|---|---|---|
+| *(aucun)* | écrit du code dans l'éditeur | `starter`, `check` / `expected_output` |
+| `quiz` | répond à un QCM | `question`, `options`, `answer` (0 = première option) |
+| `predire` | **annonce la sortie avant d'exécuter** | `code`, `explanation` |
+| `ordre` | **remet des lignes mélangées dans l'ordre** | `lignes` (dans le bon ordre) |
+| *(aucun)* + `exercices` | enchaîne plusieurs étapes | une liste `exercices` |
+
+Les deux types en gras font travailler la **lecture** du code, là où
+l'éditeur seul encourage parfois à modifier au hasard jusqu'à ce que la
+vérification passe.
+
+```json
+{
+  "id": "moncours-03",
+  "type": "predire",
+  "title": "Devine ce que ça affiche",
+  "content": "## Lire avant d'exécuter\n\n…",
+  "code": "print(2 + 3)\nprint('2' + '3')\n",
+  "explanation": "Entre guillemets, « + » colle les textes bout à bout."
+}
+```
+
+```json
+{
+  "id": "moncours-04",
+  "type": "ordre",
+  "title": "Remets le programme dans l'ordre",
+  "lignes": ["total = 0", "for n in [1, 2, 3]:", "    total = total + n", "print(total)"],
+  "expected_output": "6"
+}
+```
+
+> Pour `ordre`, les `lignes` s'écrivent **dans le bon ordre** : l'application
+> les mélange elle-même, toujours de la même façon pour un exercice donné, et
+> jamais dans l'ordre correct. Si tu ajoutes `expected_output` ou `check`, la
+> validation se fait en exécutant le programme reconstitué — plusieurs ordres
+> peuvent alors être acceptés, ce qui est plus juste quand deux lignes sont
+> réellement interchangeables.
 
 ### Vérifier son travail
 

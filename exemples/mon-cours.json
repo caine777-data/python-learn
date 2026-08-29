@@ -25,6 +25,27 @@
       "solution": "notes = [12, 15, 18]\nmoyenne = sum(notes) / len(notes)\n"
     },
     {
+      "id": "moncours-03",
+      "type": "predire",
+      "title": "Devine ce que ça affiche",
+      "content": "## Lire avant d'exécuter\n\nAvant de lancer un programme, on peut le lire et prévoir ce qu'il va faire. C'est le meilleur moyen de progresser.",
+      "code": "print(2 + 3)\nprint('2' + '3')\n",
+      "explanation": "Entre guillemets, « 2 » et « 3 » sont des textes : « + » les colle bout à bout au lieu de les additionner."
+    },
+    {
+      "id": "moncours-04",
+      "type": "ordre",
+      "title": "Remets le programme dans l'ordre",
+      "content": "## Retrouver l'ordre\n\nLes lignes ont été mélangées. Remets-les dans le bon ordre pour que le programme affiche la somme.",
+      "lignes": [
+        "total = 0",
+        "for nombre in [1, 2, 3]:",
+        "    total = total + nombre",
+        "print(total)"
+      ],
+      "expected_output": "6"
+    },
+    {
       "id": "moncours-quiz",
       "type": "quiz",
       "title": "Quiz de fin",

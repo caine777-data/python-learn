@@ -52,7 +52,7 @@ Version: $VERSION
 Section: education
 Priority: optional
 Architecture: $ARCH
-Maintainer: C. Monna <cedricmonna@gmail.com>
+Maintainer: Cédric Monna <cedricmonna@gmail.com>
 Homepage: https://github.com/cedricmonna/python-learn
 Description: Apprendre Python pas à pas, du débutant à l'expert
  PythonLearn est une application de bureau qui enseigne Python à travers
