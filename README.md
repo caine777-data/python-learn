@@ -7,7 +7,7 @@ débutant au niveau expert**. Chaque leçon mêle une explication claire et
 un exercice que l'on résout dans un éditeur intégré : le code s'exécute
 pour de vrai et la réussite est vérifiée automatiquement.
 
-- ✅ Parcours structuré : **15 parcours, 132 exercices**, du tout débutant aux projets concrets
+- ✅ Parcours structuré : **16 parcours, 145 exercices**, du tout débutant aux projets concrets
 - ✅ Éditeur intégré avec **coloration syntaxique**, **numéros de ligne** et **exécution réelle**
 - ✅ **Syntaxe vérifiée en temps réel** (ligne fautive soulignée), **autocomplétion** (Ctrl+Espace)
 - ✅ **Exécution pas-à-pas** : avance ligne par ligne en voyant les variables et la sortie évoluer
@@ -34,11 +34,14 @@ pour de vrai et la réussite est vérifiée automatiquement.
 - ✅ **Certificat** de fin de parcours (HTML imprimable, à ton nom)
 - ✅ Confort d'édition : auto-fermeture des parenthèses, `Ctrl+/` pour commenter, indentation de bloc
 - ✅ **Interface bilingue FR / EN** (bascule en un clic ; le contenu des leçons reste en français)
+- ✅ **Écran d'accueil** : série de jours, progression, reprise en un clic,
+  et **rattrapage ciblé** sur les exercices qui t'ont le plus résisté
 - ✅ **Packs de leçons** : ajoute tes propres exercices avec un simple
   fichier `.json`, sans écrire une ligne de code (idéal en classe)
 - ✅ **Zéro dépendance** pour l'utilisateur (tout est en bibliothèque standard)
 - ✅ **Bac à sable sécurisé** : le « Brouillon » limite les modules importables et l'accès fichier/système
-- ✅ **Tests automatisés** du curriculum (les 132 solutions sont vérifiées par la CI)
+- ✅ **Tests automatisés** : les 145 exercices et 129 tests sont vérifiés par la CI
+  sur 3 systèmes et 2 versions de Python
 - ✅ **Installateurs** Windows (.exe), macOS (.dmg Apple Silicon)
   et Linux (.deb + archive) générés **automatiquement** par GitHub Actions
 
@@ -118,6 +121,12 @@ parcours est entièrement consacré aux **projets guidés**.
 **Projets guidés** (multi-étapes, validés exercice par exercice)
 
 14. **Projets guidés** — le **Pendu**, une **liste de tâches**, un **bloc-notes** Tkinter, un **convertisseur de devises**, le **Jeu de la vie** de Conway, et le **hachage sécurisé** d'un mot de passe.
+16. **Décoder les erreurs** — lire un message d'erreur, reconnaître les
+    grands types (`NameError`, `TypeError`, `ValueError`, `IndexError`…),
+    comprendre pourquoi une `SyntaxError` désigne souvent la ligne du dessus,
+    et remonter un traceback à plusieurs niveaux. **Accessible dès la fin du
+    niveau débutant** : c'est la compétence qui débloque le plus vite.
+
 15. **Entraînement** — réparer des bugs classiques (borne, condition inversée, IndexError), compléter du code à trous, **prédire la sortie** d'un programme avant de l'exécuter, et **remettre dans l'ordre** les lignes d'un programme mélangé.
 
 ---
@@ -423,6 +432,40 @@ python-learn/
 
 La progression est stockée dans `~/.python-learn/progress.json`
 (dossier personnel de l'utilisateur).
+
+---
+
+## 🌍 Traduire l'application
+
+L'interface est **entièrement bilingue FR / EN**. Le contenu des leçons se
+traduit progressivement, sans jamais casser quoi que ce soit : **ce qui
+n'est pas encore traduit reste affiché en français**.
+
+Pour voir où en est le chantier :
+
+```bash
+python main.py --etat-traduction
+```
+
+Les traductions vivent toutes dans un seul fichier,
+[`content/traductions.py`](content/traductions.py) — les fichiers de cours
+restent en français et n'ont pas à être touchés. Une entrée se repère par
+l'identifiant de la leçon, et ne contient que les champs traduits :
+
+```python
+"err-01": {
+    "title": "Reading an error message",
+    "content": "## Three pieces of information…",
+    "hints": ["Read the last line of the message…"],
+},
+```
+
+Ajouter une langue ne demande pas davantage : une nouvelle clé à côté de
+`"en"`, et l'entrée correspondante dans `LANGUES` (`app/i18n.py`).
+
+> Un test vérifie qu'aucune traduction ne devient orpheline : si une leçon
+> est renommée, la CI le signale au lieu de laisser la traduction cesser
+> silencieusement de s'appliquer.
 
 ---
 

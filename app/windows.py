@@ -321,3 +321,99 @@ class FlashcardWindow(tk.Toplevel):
     def _rejouer(self):
         self.destroy()
         FlashcardWindow(self.master, self.app, self.cartes, self.C)
+
+
+class AccueilWindow(tk.Toplevel):
+    """Tableau de bord d'ouverture : où j'en suis, et par quoi je reprends.
+
+    Sans lui, l'application s'ouvre directement sur un exercice : on ne
+    sait ni où l'on en est, ni ce qu'on avait raté la dernière fois. Tout
+    ce qui est affiché ici vient de stats.resume_accueil().
+    """
+
+    def __init__(self, master, app, resume, C):
+        super().__init__(master)
+        self.app = app
+        self.C = C
+        self.title(app.tr("acc_titre"))
+        self.configure(bg=C["panel"])
+        self.resizable(False, False)
+        tk.Frame(self, bg=C["accent"], height=5).pack(fill=tk.X, side=tk.TOP)
+
+        premiere_fois = resume["faits"] == 0
+        tk.Label(self, text=app.tr("acc_bienvenue" if premiere_fois else "acc_retour"),
+                 bg=C["panel"], fg=C["accent"], font=("", 19, "bold")).pack(pady=(16, 2))
+
+        # --- la ligne de chiffres : série, niveau, révisions dues ---------
+        chiffres = tk.Frame(self, bg=C["panel"])
+        chiffres.pack(pady=(6, 12))
+        niv = resume["niveau"]
+        cases = [
+            ("🔥", str(resume["serie"]), app.tr("acc_serie")),
+            ("⭐", str(niv["niveau"]), app.tr("acc_niveau")),
+            ("🎯", f"{resume['aujourdhui']}/{resume['objectif']}", app.tr("acc_jour")),
+        ]
+        if resume["revisions"]:
+            cases.append(("🔁", str(resume["revisions"]), app.tr("acc_revisions")))
+        for icone, valeur, legende in cases:
+            case = tk.Frame(chiffres, bg=C["panel"])
+            case.pack(side=tk.LEFT, padx=14)
+            tk.Label(case, text=icone, bg=C["panel"], font=("", 17)).pack()
+            tk.Label(case, text=valeur, bg=C["panel"], fg=C["fg"],
+                     font=("", 15, "bold")).pack()
+            tk.Label(case, text=legende, bg=C["panel"], fg=C["muted"],
+                     font=("", 8)).pack()
+
+        # --- progression -------------------------------------------------
+        faits, total = resume["faits"], max(1, resume["total"])
+        tk.Label(self, text=app.tr("acc_progression", faits=faits, total=resume["total"]),
+                 bg=C["panel"], fg=C["muted"], font=("", 9)).pack()
+        barre = ttk.Progressbar(self, length=380, maximum=total, value=faits)
+        barre.pack(pady=(4, 14), padx=24)
+
+        # --- reprendre ---------------------------------------------------
+        quoi, item = resume["prochaine"]
+        principal = ttk.Frame(self, style="Panel.TFrame")
+        principal.pack(pady=(0, 8))
+        if item is not None:
+            cle = "acc_revision" if quoi == "revision" else "acc_reprendre"
+            ttk.Button(principal, text=app.tr(cle),
+                       style="Primary.TButton",
+                       command=lambda i=item: self._aller(i)).pack()
+        else:
+            tk.Label(self, text=app.tr("acc_termine"), bg=C["panel"], fg=C["ok"],
+                     wraplength=380, justify="center").pack(pady=4)
+
+        # --- rattrapage ciblé --------------------------------------------
+        if resume["difficiles"]:
+            tk.Label(self, text=app.tr("acc_difficiles"), bg=C["panel"],
+                     fg=C["muted"], font=("", 9)).pack(pady=(12, 4))
+            for item_id, echecs in resume["difficiles"]:
+                titre = app.titre_de_item(item_id)
+                ttk.Button(self, text=app.tr("acc_refaire", titre=titre, n=echecs),
+                           command=lambda i=item_id: self._aller(i)).pack(
+                    fill=tk.X, padx=40, pady=2)
+
+        # --- pied --------------------------------------------------------
+        pied = tk.Frame(self, bg=C["panel"])
+        pied.pack(pady=(16, 14))
+        self.au_demarrage = tk.BooleanVar(
+            value=app.data.get("accueil_au_demarrage", True))
+        tk.Checkbutton(pied, text=app.tr("acc_au_demarrage"),
+                       variable=self.au_demarrage, command=self._basculer,
+                       bg=C["panel"], fg=C["muted"], selectcolor=C["editor"],
+                       activebackground=C["panel"], activeforeground=C["fg"],
+                       font=("", 8), borderwidth=0,
+                       highlightthickness=0).pack(side=tk.LEFT, padx=8)
+        ttk.Button(pied, text=app.tr("acc_fermer"),
+                   command=self.destroy).pack(side=tk.LEFT, padx=8)
+
+        self.bind("<Escape>", lambda e: self.destroy())
+        self.transient(master)
+
+    def _aller(self, item_id):
+        self.destroy()
+        self.app.charger_depuis_accueil(item_id)
+
+    def _basculer(self):
+        prog.set_accueil_au_demarrage(self.app.data, self.au_demarrage.get())

@@ -138,6 +138,36 @@ def creer_exemple_pack():
     return 0
 
 
+def afficher_etat_traduction(langue="en"):
+    """Montre l'avancement de la traduction du contenu, parcours par parcours.
+
+    Le chantier se mène sur la durée : sans mesure, on ne sait ni où l'on
+    en est, ni par quoi continuer.
+    """
+    from content import etat_traduction
+
+    rapport = etat_traduction(langue)
+    faits = sum(ligne["traduites"] for ligne in rapport)
+    total = sum(ligne["total"] for ligne in rapport)
+
+    _dire(f"Traduction « {langue} » : {faits} leçons sur {total} "
+          f"({faits * 100 // max(1, total)} %)")
+    _dire("")
+    for ligne in rapport:
+        if ligne["traduites"] == ligne["total"]:
+            etat = "terminé"
+        elif ligne["traduites"] == 0:
+            etat = "-"
+        else:
+            etat = "en cours"
+        _dire(f"  {ligne['traduites']:>3}/{ligne['total']:<3} {etat:<9} "
+              f"{ligne['titre']}")
+    _dire("")
+    _dire("Les traductions s'écrivent dans content/traductions.py ; "
+          "ce qui manque reste affiché en français.")
+    return 0
+
+
 def main(argv=None):
     analyseur = argparse.ArgumentParser(
         prog="PythonLearn",
@@ -150,6 +180,9 @@ def main(argv=None):
                            help="contrôle les packs de leçons installés, puis sort")
     analyseur.add_argument("--exemple-pack", action="store_true",
                            help="crée un pack de leçons d'exemple, puis sort")
+    analyseur.add_argument("--etat-traduction", metavar="LANGUE", nargs="?",
+                           const="en",
+                           help="montre l'avancement de la traduction, puis sort")
     arguments = analyseur.parse_args(argv)
 
     if arguments.check:
@@ -158,6 +191,8 @@ def main(argv=None):
         return verifier_packs()
     if arguments.exemple_pack:
         return creer_exemple_pack()
+    if arguments.etat_traduction:
+        return afficher_etat_traduction(arguments.etat_traduction)
 
     from app.ui import launch
     launch()

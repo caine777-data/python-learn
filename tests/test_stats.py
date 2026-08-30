@@ -84,5 +84,81 @@ class TestStats(unittest.TestCase):
         self.assertEqual(html.count("<section>"), 1)
 
 
+class TestNotionsDifficiles(unittest.TestCase):
+    """Les échecs enregistrés servent enfin à proposer un rattrapage."""
+
+    ORDRE = ["deb-01", "deb-02", "deb-03", "deb-04"]
+
+    def test_classement_du_plus_difficile_au_moins(self):
+        echecs = {"deb-01": 2, "deb-02": 7, "deb-03": 4}
+        self.assertEqual(
+            stats.notions_difficiles(echecs, self.ORDRE),
+            [("deb-02", 7), ("deb-03", 4), ("deb-01", 2)])
+
+    def test_un_seul_echec_ne_fait_pas_une_difficulte(self):
+        self.assertEqual(stats.notions_difficiles({"deb-01": 1}, self.ORDRE), [])
+
+    def test_limite_respectee(self):
+        echecs = {"deb-01": 9, "deb-02": 8, "deb-03": 7, "deb-04": 6}
+        self.assertEqual(len(stats.notions_difficiles(echecs, self.ORDRE, limite=2)), 2)
+
+    def test_exercices_disparus_sont_ecartes(self):
+        """Le curriculum change : un ancien identifiant ne doit rien proposer."""
+        echecs = {"exercice-supprime": 12, "deb-01": 3}
+        self.assertEqual(stats.notions_difficiles(echecs, self.ORDRE),
+                         [("deb-01", 3)])
+
+    def test_classement_stable(self):
+        """À égalité, l'ordre ne doit pas changer d'un affichage à l'autre."""
+        echecs = {"deb-03": 3, "deb-01": 3, "deb-02": 3}
+        premier = stats.notions_difficiles(echecs, self.ORDRE)
+        self.assertEqual(premier, stats.notions_difficiles(echecs, self.ORDRE))
+        self.assertEqual([item for item, _ in premier], ["deb-01", "deb-02", "deb-03"])
+
+    def test_aucun_echec(self):
+        self.assertEqual(stats.notions_difficiles({}, self.ORDRE), [])
+
+
+class TestResumeAccueil(unittest.TestCase):
+
+    ORDRE = ["a", "b", "c", "d"]
+
+    def resume(self, **data):
+        base = {"completed": [], "echecs": {}, "historique": {}, "badges": [],
+                "srs": {}, "objectif_quotidien": 3}
+        base.update(data)
+        return stats.resume_accueil(base, self.ORDRE, datetime.date(2026, 5, 4))
+
+    def test_progression_comptee_sur_les_exercices_existants(self):
+        r = self.resume(completed=["a", "b", "disparu"])
+        self.assertEqual((r["faits"], r["total"]), (2, 4))
+
+    def test_prochaine_action_est_la_premiere_non_faite(self):
+        self.assertEqual(self.resume(completed=["a"])["prochaine"], ("nouvelle", "b"))
+
+    def test_revision_prioritaire_sur_la_suite(self):
+        r = self.resume(completed=["a"],
+                        srs={"a": {"interval": 1, "due": "2026-05-01"}})
+        self.assertEqual(r["prochaine"], ("revision", "a"))
+        self.assertEqual(r["revisions"], 1)
+
+    def test_tout_termine(self):
+        self.assertEqual(self.resume(completed=self.ORDRE)["prochaine"],
+                         ("termine", None))
+
+    def test_activite_du_jour_et_objectif(self):
+        r = self.resume(historique={"2026-05-04": 5}, objectif_quotidien=3)
+        self.assertEqual((r["aujourdhui"], r["objectif"]), (5, 3))
+        self.assertEqual(r["serie"], 1)
+
+    def test_difficultes_remontees(self):
+        self.assertEqual(self.resume(echecs={"b": 4})["difficiles"], [("b", 4)])
+
+    def test_donnees_vides_ne_plantent_pas(self):
+        r = stats.resume_accueil({}, [], datetime.date(2026, 5, 4))
+        self.assertEqual(r["faits"], 0)
+        self.assertEqual(r["prochaine"], ("termine", None))
+
+
 if __name__ == "__main__":
     unittest.main()

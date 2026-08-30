@@ -62,6 +62,57 @@ def prochaine_action(ordre_ids, completed, ids_dus):
 
 
 
+# ------------------------------------------------------- notions difficiles
+# En dessous de deux échecs sur un même exercice, on ne parle pas encore de
+# difficulté : se tromper une fois fait partie de l'apprentissage.
+SEUIL_DIFFICILE = 2
+
+
+def notions_difficiles(echecs, ordre_ids, limite=3, seuil=SEUIL_DIFFICILE):
+    """Les exercices les plus souvent ratés, du plus difficile au moins.
+
+    L'application comptait déjà les échecs sans jamais s'en servir. C'est
+    pourtant la meilleure indication de ce qu'il faut retravailler : bien
+    plus fiable qu'un ordre de parcours, qui suppose que tout le monde
+    bute aux mêmes endroits.
+
+    `ordre_ids` sert à écarter les exercices qui n'existent plus, le
+    curriculum pouvant changer d'une version à l'autre. Le tri est
+    déterministe (nombre d'échecs, puis identifiant) pour que deux
+    affichages successifs ne changent pas d'ordre sans raison.
+    """
+    connus = set(ordre_ids)
+    candidats = [(item, nombre) for item, nombre in echecs.items()
+                 if nombre >= seuil and item in connus]
+    candidats.sort(key=lambda couple: (-couple[1], couple[0]))
+    return candidats[:limite]
+
+
+def resume_accueil(data, ordre_ids, today, total=None):
+    """Tout ce qu'affiche l'écran d'accueil, calculé en un seul endroit.
+
+    L'interface n'a plus qu'à mettre en forme : la logique reste ici, donc
+    testable sans écran.
+    """
+    completed = data.get("completed", [])
+    historique = data.get("historique", {})
+    connus = set(ordre_ids)
+    ids_dus = dus(data.get("srs", {}), today, completed)
+
+    return {
+        "serie": streak(historique, today),
+        "meilleure_serie": meilleur_streak(historique),
+        "niveau": niveau(xp_total(completed, data.get("badges", []))),
+        "faits": len([item for item in completed if item in connus]),
+        "total": len(ordre_ids) if total is None else total,
+        "aujourdhui": historique.get(today.isoformat(), 0),
+        "objectif": data.get("objectif_quotidien", 3),
+        "revisions": len(ids_dus),
+        "prochaine": prochaine_action(ordre_ids, completed, ids_dus),
+        "difficiles": notions_difficiles(data.get("echecs", {}), ordre_ids),
+    }
+
+
 # --------------------------------------------------------------- séries (streak)
 def streak(historique, today):
     """Nombre de jours consécutifs d'activité se terminant aujourd'hui (ou hier)."""

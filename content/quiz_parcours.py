@@ -117,6 +117,24 @@ QUIZ = {
         "answer": 1,
         "explanation": "collections.Counter compte tout seul et donne les plus fréquents.",
     },
+    "erreurs": {
+        "id": "qz-err", "type": "quiz",
+        "title": "Quiz : récap Décoder les erreurs",
+        "content": "## Lire une erreur\n\nUne dernière pour vérifier le réflexe.",
+        "question": "Dans un message d'erreur, par quelle ligne faut-il commencer ?",
+        "options": [
+            "La première ligne du Traceback",
+            "La dernière ligne, qui donne le type et l'explication",
+            "La ligne de code recopiée",
+            "Le numéro de ligne",
+        ],
+        "answer": 1,
+        "explanation": (
+            "On lit toujours la dernière ligne en premier : c'est elle qui "
+            "nomme l'erreur et l'explique. Le reste du Traceback sert ensuite "
+            "à retrouver d'où venait l'appel."
+        ),
+    },
     "tests_tdd": {
         "id": "qz-tdd", "type": "quiz",
         "title": "Quiz : récap Tests",

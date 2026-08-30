@@ -16,7 +16,7 @@ from app.i18n import LANGUES, Translator
 from app.theme import THEME_ORDER, THEMES, assombrir, eclaircir
 from app.version import APP_NAME, AUTEUR, DEPOT, __version__
 from app.vues_exercices import VueOrdre, VuePrediction
-from app.windows import Celebration, ExamWindow, FlashcardWindow, StepWindow
+from app.windows import AccueilWindow, Celebration, ExamWindow, FlashcardWindow, StepWindow
 from content import (
     CURRICULUM,
     GLOSSAIRE,
@@ -28,6 +28,7 @@ from content import (
     lesson_done,
     lesson_items,
     total_count,
+    traduit,
 )
 
 try:
@@ -52,7 +53,7 @@ LEVEL_BADGE_NAMES = {
     "web": "Python & le web", "admin": "Administrer son PC",
     "sqlite": "Bases de données (SQLite)", "turtle": "Dessiner (turtle)",
     "algos": "Algorithmes", "donnees": "Manipuler des données",
-    "tests_tdd": "Tests & TDD",
+    "tests_tdd": "Tests & TDD", "erreurs": "Décoder les erreurs",
     "projets": "Projets guidés", "entrainement": "Entraînement",
 }
 
@@ -107,6 +108,8 @@ class PythonLearnApp:
             self.root.after(400, self._avertir_incident)
         elif not self.data.get("vu_accueil"):
             self.root.after(300, self._show_welcome)
+        elif self.data.get("accueil_au_demarrage", True):
+            self.root.after(300, self._show_accueil)
 
     def _avertir_incident(self):
         """Prévient l'apprenant quand la progression n'a pas pu être lue telle quelle."""
@@ -228,7 +231,9 @@ class PythonLearnApp:
                    command=lambda: self._zoom(-1)).pack(side=tk.LEFT, padx=(6, 0), pady=4)
         ttk.Button(toolbar, text="A+", width=3,
                    command=lambda: self._zoom(1)).pack(side=tk.LEFT, padx=(0, 8), pady=4)
-        self._tbtn(toolbar, "tb_glossaire", self._show_glossaire).pack(side=tk.LEFT, pady=4)
+        self._tbtn(toolbar, "tb_accueil", self._show_accueil).pack(side=tk.LEFT, pady=4)
+        self._tbtn(toolbar, "tb_glossaire", self._show_glossaire).pack(
+            side=tk.LEFT, padx=6, pady=4)
         self._tbtn(toolbar, "tb_revision", self._revision).pack(side=tk.LEFT, padx=6, pady=4)
         self._tbtn(toolbar, "tb_stats", self._show_stats).pack(side=tk.LEFT, pady=4)
         self._tbtn(toolbar, "tb_doc",
@@ -556,7 +561,7 @@ class PythonLearnApp:
         q = self.search_query
         for level in CURRICULUM:
             lessons = [lecon for lecon in level["lessons"]
-                       if not q or q in lecon["title"].lower()]
+                       if not q or q in self.txt(lecon, "title").lower()]
             if q and not lessons:
                 continue
             done = sum(1 for lecon in level["lessons"]
@@ -565,7 +570,7 @@ class PythonLearnApp:
             badge = " 🏅" if level["id"] in self.data["badges"] else ""
             parent = self.tree.insert(
                 "", "end", open=True, tags=("level",),
-                text=f"  {level['title']}  ({done}/{total}){badge}")
+                text=f"  {self.txt(level, 'title')}  ({done}/{total}){badge}")
             for lesson in lessons:
                 d = lesson_done(lesson, self.data["completed"])
                 if d:
@@ -580,7 +585,7 @@ class PythonLearnApp:
                     icone = "•"
                 suffixe = self._suffixe_lecon(lesson)
                 node = self.tree.insert(parent, "end",
-                                        text=f"  {icone} {lesson['title']}{suffixe}",
+                                        text=f"  {icone} {self.txt(lesson, 'title')}{suffixe}",
                                         tags=("done",) if d else ())
                 self.item_to_lesson[node] = lesson
 
@@ -622,15 +627,23 @@ class PythonLearnApp:
             self._load_lesson(lesson)
 
     # -------------------------------------------------------------- chargement
+    def txt(self, element, champ, defaut=""):
+        """Champ d'une leçon dans la langue de l'interface.
+
+        Le contenu pédagogique est écrit en français ; ce raccourci sert
+        la traduction quand elle existe, et le français sinon.
+        """
+        return traduit(element, champ, self.lang, defaut)
+
     def _load_lesson(self, lesson):
         self._flush_code()          # le code de la leçon quittée part sur disque
         self.current = lesson
         self.exo_index = 0
         self._revision_item = None
         self._echecs_session = 0
-        self.lesson_title.configure(text=lesson["title"])
+        self.lesson_title.configure(text=self.txt(lesson, "title"))
         self._maj_favori_btn()
-        self._render_content(lesson.get("content", ""))
+        self._render_content(self.txt(lesson, "content"))
         self._masquer_cadres()
         type_lecon = lesson.get("type")
         if type_lecon == "quiz":
@@ -740,7 +753,8 @@ class PythonLearnApp:
         self.exo_index = index
         exo = get_exercice(self.current, index)
         item_id = lesson_items(self.current)[index]
-        self.enonce.configure(text=exo.get("prompt", "") if exercice_count(self.current) > 1 else "")
+        self.enonce.configure(
+            text=self.txt(exo, "prompt") if exercice_count(self.current) > 1 else "")
         mode = exo.get("mode") or self.current.get("mode")
         if mode == "debug":
             self.mode_label.configure(text=self.tr("mode_debug"))
@@ -750,7 +764,9 @@ class PythonLearnApp:
             self.mode_label.configure(text="")
         saved = self.data["code"].get(item_id)
         self.editor.set_text(saved if saved is not None else exo.get("starter", ""))
-        self._hints = hints_for(self.current, exo if exercice_count(self.current) > 1 else None)
+        self._hints = hints_for(self.current,
+                                exo if exercice_count(self.current) > 1 else None,
+                                self.lang)
         self._hint_idx = 0
         self.feedback.configure(text="")
         self._clear_console()
@@ -760,11 +776,11 @@ class PythonLearnApp:
 
     def _load_quiz(self, lesson):
         self.quiz_var.set(-1)
-        self.quiz_question.configure(text=lesson.get("question", ""))
+        self.quiz_question.configure(text=self.txt(lesson, "question"))
         for r in self.quiz_radios:
             r.destroy()
         self.quiz_radios = []
-        for i, opt in enumerate(lesson.get("options", [])):
+        for i, opt in enumerate(self.txt(lesson, "options", [])):
             r = ttk.Radiobutton(self.quiz_options, text=opt, value=i,
                                 variable=self.quiz_var)
             r.pack(anchor="w", pady=3)
@@ -1006,7 +1022,7 @@ class PythonLearnApp:
             return
         if choix == self.current.get("answer"):
             self.quiz_feedback.configure(
-                text=self.tr("quiz_good") + self.current.get("explanation", ""),
+                text=self.tr("quiz_good") + self.txt(self.current, "explanation"),
                 foreground=self.C["ok"])
             nouveau = self.current["id"] not in self.data["completed"]
             self._mark_done(self.current["id"])
@@ -1162,6 +1178,26 @@ class PythonLearnApp:
         tk.Label(win, text=self.tr("wel_body"), bg=C["panel"], fg=C["fg"], justify="left",
                  wraplength=470).pack(padx=20)
         tk.Button(win, text=self.tr("wel_start"), command=win.destroy).pack(pady=14)
+
+    def _show_accueil(self):
+        """Ouvre le tableau de bord : où j'en suis, par quoi je reprends."""
+        resume = stats.resume_accueil(self.data, self._ordre_item_ids(),
+                                      date.today())
+        AccueilWindow(self.root, self, resume, self.C)
+
+    def titre_de_item(self, item_id):
+        """Titre lisible d'un item, pour l'afficher hors de sa leçon."""
+        lecon = find_lesson(item_id.split("#")[0])
+        if lecon is None:
+            return item_id
+        if "#" in item_id:
+            rang = int(item_id.split("#")[1]) + 1
+            return f"{lecon['title']} ({rang})"
+        return self.txt(lecon, "title")
+
+    def charger_depuis_accueil(self, item_id):
+        """Ouvre l'exercice choisi depuis l'écran d'accueil."""
+        self._charger_item(item_id)
 
     def _show_glossaire(self):
         C = self.C

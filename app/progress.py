@@ -24,7 +24,8 @@ BACKUP_FILE = DATA_DIR / "progress.bak.json"
 _DEFAULT = {"completed": [], "code": {}, "badges": [], "theme": "dark",
             "vu_accueil": False, "historique": {}, "objectif_quotidien": 3,
             "srs": {}, "nom": "", "langue": "fr",
-            "notes": {}, "favoris": [], "objectif_hebdo": 15, "echecs": {}}
+            "notes": {}, "favoris": [], "objectif_hebdo": 15, "echecs": {},
+            "accueil_au_demarrage": True}
 
 # Renseigné par load_progress() quand le chargement ne s'est pas passé
 # normalement, pour que l'interface puisse prévenir l'apprenant au lieu
@@ -212,6 +213,12 @@ def toggle_favori(data, item_id):
         actif = True
     save_progress(data)
     return actif
+
+
+def set_accueil_au_demarrage(data, actif):
+    """Mémorise si l'écran d'accueil doit s'ouvrir au lancement."""
+    data["accueil_au_demarrage"] = bool(actif)
+    save_progress(data)
 
 
 def set_objectif_hebdo(data, n):
