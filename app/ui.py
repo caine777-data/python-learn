@@ -48,6 +48,14 @@ except Exception:
 # on réécrirait tout le fichier de progression à CHAQUE touche du clavier.
 DELAI_SAUVEGARDE_MS = 700
 
+# Espace pris par un bouton de la barre en plus de son texte :
+# marges internes, bordures et écart avec le suivant.
+MARGE_BOUTON = 14
+
+# Largeur (en caractères) d'un bouton réduit à son icône. Sans elle, le
+# thème ttk garderait la largeur d'un libellé complet.
+LARGEUR_ICONE = 3
+
 # Types de leçons qui n'utilisent pas l'éditeur de code : les actions
 # « Exécuter », « Indice », « Exporter »… n'ont pas de sens pour elles.
 _SANS_EDITEUR = ("quiz", "predire", "ordre")
@@ -229,7 +237,13 @@ class PythonLearnApp:
         # barre d'outils supérieure
         toolbar = ttk.Frame(self.root, style="Panel.TFrame")
         toolbar.pack(fill=tk.X, side=tk.TOP)
-        self.theme_btn = ttk.Button(toolbar, text="", command=self.cycle_theme, width=20)
+        self.toolbar = toolbar
+        self._boutons_barre = []      # boutons repliables, dans l'ordre
+        self._debordement = []        # ceux qui ne tiennent pas, pour le menu
+        self._largeur_barre = 0
+        # Pas de largeur fixe : le nom du thème suffit, et la barre est
+        # déjà dense.
+        self.theme_btn = ttk.Button(toolbar, text="", command=self.cycle_theme)
         self.theme_btn.pack(side=tk.LEFT, padx=4, pady=4)
         self.lang_btn = ttk.Button(toolbar, text=self.tr("tb_lang"), width=6,
                                    command=self.cycle_langue)
@@ -238,20 +252,27 @@ class PythonLearnApp:
                    command=lambda: self._zoom(-1)).pack(side=tk.LEFT, padx=(6, 0), pady=4)
         ttk.Button(toolbar, text="A+", width=3,
                    command=lambda: self._zoom(1)).pack(side=tk.LEFT, padx=(0, 8), pady=4)
-        self._tbtn(toolbar, "tb_accueil", self._show_accueil).pack(side=tk.LEFT, pady=4)
-        self._tbtn(toolbar, "tb_glossaire", self._show_glossaire).pack(
-            side=tk.LEFT, padx=6, pady=4)
-        self._tbtn(toolbar, "tb_revision", self._revision).pack(side=tk.LEFT, padx=6, pady=4)
-        self._tbtn(toolbar, "tb_stats", self._show_stats).pack(side=tk.LEFT, pady=4)
-        self._tbtn(toolbar, "tb_doc",
-                   lambda: webbrowser.open("https://docs.python.org/fr/3/")).pack(side=tk.LEFT, padx=6, pady=4)
-        self._tbtn(toolbar, "tb_brouillon", self._show_sandbox).pack(side=tk.LEFT, pady=4)
-        self._tbtn(toolbar, "tb_reco", self._recommander).pack(side=tk.LEFT, padx=6, pady=4)
-        self._tbtn(toolbar, "tb_examen", self._mode_examen).pack(side=tk.LEFT, pady=4)
-        self._tbtn(toolbar, "tb_lecons", self._ouvrir_mes_lecons).pack(
-            side=tk.LEFT, padx=6, pady=4)
+        for cle, action in (
+            ("tb_accueil", self._show_accueil),
+            ("tb_glossaire", self._show_glossaire),
+            ("tb_revision", self._revision),
+            ("tb_stats", self._show_stats),
+            ("tb_doc", lambda: webbrowser.open("https://docs.python.org/fr/3/")),
+            ("tb_brouillon", self._show_sandbox),
+            ("tb_reco", self._recommander),
+            ("tb_examen", self._mode_examen),
+            ("tb_lecons", self._ouvrir_mes_lecons),
+        ):
+            bouton = self._tbtn(toolbar, cle, action)
+            self._boutons_barre.append((bouton, cle, action))
+            self._infobulle_barre(bouton, cle)
+
         self._tbtn(toolbar, "tb_reset", self._reset_progress).pack(side=tk.RIGHT, padx=4, pady=4)
         self._tbtn(toolbar, "tb_apropos", self._a_propos).pack(side=tk.RIGHT, pady=4)
+        # Bouton de débordement : il n'apparaît que si la place manque.
+        self.btn_plus = ttk.Button(toolbar, text="⋯", width=3,
+                                   command=self._menu_barre)
+        toolbar.bind("<Configure>", self._barre_redimensionnee)
 
         outer = ttk.PanedWindow(self.root, orient=tk.HORIZONTAL)
         outer.pack(fill=tk.BOTH, expand=True, padx=8, pady=(6, 0))
@@ -345,6 +366,125 @@ class PythonLearnApp:
         self.root.bind("<Control-minus>", lambda e: self._zoom(-1))
         self.root.bind("<Control-KP_Subtract>", lambda e: self._zoom(-1))
         self.root.bind("<Control-0>", lambda e: self._zoom(0))
+
+    def _barre_redimensionnee(self, event):
+        """Ne recalcule que si la largeur a réellement changé.
+
+        Replacer les boutons déclenche un nouvel événement « Configure » :
+        sans ce garde-fou, on bouclerait indéfiniment.
+        """
+        if event.width == self._largeur_barre:
+            return
+        self._largeur_barre = event.width
+        self.root.after_idle(self._ajuster_barre)
+
+    @staticmethod
+    def _icone_de(libelle):
+        """Première partie d'un libellé quand c'est une icône (« 🏠 Accueil » -> « 🏠 »)."""
+        morceaux = libelle.split()
+        if morceaux and not morceaux[0][0].isalnum():
+            return morceaux[0]
+        return libelle
+
+    def _ajuster_barre(self):
+        """Adapte la barre à la largeur de la fenêtre, en trois temps.
+
+        La barre s'est enrichie au fil des versions. En fenêtre étroite,
+        les derniers boutons sortaient simplement de l'écran, sans aucun
+        moyen de les atteindre — ni menu, ni défilement.
+
+        On essaie donc, dans l'ordre :
+          1. les libellés complets, les plus clairs pour un débutant ;
+          2. les icônes seules, avec le nom en infobulle ;
+          3. le menu « ⋯ » pour ce qui ne tient toujours pas.
+        """
+        if not self.toolbar.winfo_exists():
+            return
+        largeur = self.toolbar.winfo_width()
+        if largeur <= 1:                     # fenêtre pas encore dessinée
+            return
+
+        # Place prise par ce qui n'est pas repliable (thème, langue, zoom à
+        # gauche ; réinitialiser et à propos à droite).
+        occupe = 0
+        for enfant in self.toolbar.winfo_children():
+            repliable = any(enfant is b for b, _, _ in self._boutons_barre)
+            if repliable or enfant is self.btn_plus:
+                continue
+            occupe += enfant.winfo_reqwidth() + MARGE_BOUTON
+        disponible = largeur - occupe - (self.btn_plus.winfo_reqwidth() + MARGE_BOUTON)
+
+        for bouton, _, _ in self._boutons_barre:
+            bouton.pack_forget()
+
+        # Faut-il passer en icônes seules ? On compare la largeur totale
+        # des libellés complets à la place réellement disponible.
+        for bouton, cle, _ in self._boutons_barre:
+            bouton.configure(text=self.tr(cle), width=0)
+        # Tk ne recalcule la largeur demandée qu'au prochain temps mort :
+        # sans cela on mesurerait encore l'ancien libellé.
+        self.toolbar.update_idletasks()
+        entier = sum(b.winfo_reqwidth() + MARGE_BOUTON
+                     for b, _, _ in self._boutons_barre)
+        if entier > disponible:
+            # Le thème ttk impose une largeur minimale identique à tous les
+            # boutons : changer le texte ne suffit pas, il faut aussi fixer
+            # « width », exprimé en caractères.
+            for bouton, cle, _ in self._boutons_barre:
+                bouton.configure(text=self._icone_de(self.tr(cle)),
+                                 width=LARGEUR_ICONE)
+            self.toolbar.update_idletasks()
+
+        self._debordement = []
+        utilise = 0
+        for bouton, cle, action in self._boutons_barre:
+            besoin = bouton.winfo_reqwidth() + MARGE_BOUTON
+            if utilise + besoin <= disponible:
+                bouton.pack(side=tk.LEFT, padx=3, pady=4)
+                utilise += besoin
+            else:
+                self._debordement.append((cle, action))
+
+        if self._debordement:
+            self.btn_plus.pack(side=tk.RIGHT, padx=4, pady=4)
+        else:
+            self.btn_plus.pack_forget()
+
+    def _infobulle_barre(self, bouton, cle):
+        """Affiche le nom complet au survol : une icône seule ne dit pas tout."""
+        def entrer(_e=None):
+            if bouton.cget("text") == self.tr(cle):
+                return                      # libellé complet : rien à ajouter
+            self._masquer_infobulle()
+            self._bulle = tk.Toplevel(self.root)
+            self._bulle.overrideredirect(True)
+            self._bulle.attributes("-topmost", True)
+            tk.Label(self._bulle, text=self.tr(cle), bg=self.C["panel"],
+                     fg=self.C["fg"], padx=8, pady=3,
+                     borderwidth=1, relief="solid").pack()
+            self._bulle.geometry(
+                f"+{bouton.winfo_rootx()}+{bouton.winfo_rooty() + bouton.winfo_height() + 2}")
+
+        bouton.bind("<Enter>", entrer)
+        bouton.bind("<Leave>", lambda e: self._masquer_infobulle())
+
+    def _masquer_infobulle(self):
+        bulle = getattr(self, "_bulle", None)
+        if bulle is not None and bulle.winfo_exists():
+            bulle.destroy()
+        self._bulle = None
+
+    def _menu_barre(self):
+        """Ouvre le menu des boutons qui n'ont pas trouvé leur place."""
+        menu = tk.Menu(self.root, tearoff=0)
+        for cle, action in self._debordement:
+            menu.add_command(label=self.tr(cle), command=action)
+        try:
+            menu.tk_popup(self.btn_plus.winfo_rootx(),
+                          self.btn_plus.winfo_rooty()
+                          + self.btn_plus.winfo_height())
+        finally:
+            menu.grab_release()
 
     def _build_exercise_frame(self):
         self.exo_frame = ttk.Frame(self.bottom)
@@ -506,8 +646,46 @@ class PythonLearnApp:
         self._refresh_status()
         self.vue_predire.traduire()
         self.vue_ordre.traduire()
+        self._retraduire_lecon()
+        self._ajuster_barre()      # les libellés changent de longueur
         if self.current and self.current.get("type") not in ("quiz", "predire", "ordre"):
             self.editor._verifier_syntaxe()
+
+    def _retraduire_lecon(self):
+        """Met la leçon affichée dans la nouvelle langue, immédiatement.
+
+        Sans cela, changer de langue ne touchait que les boutons : le
+        titre, l'énoncé et le cours restaient dans l'ancienne langue
+        jusqu'au prochain changement de leçon.
+
+        On ne recharge pas la leçon : cela viderait la console et
+        effacerait le retour de la dernière vérification.
+        """
+        self._populate_tree()
+        lecon = self.current
+        if not lecon:
+            return
+
+        # L'arbre vient d'être reconstruit : on y resélectionne la leçon.
+        for noeud, candidate in self.item_to_lesson.items():
+            if candidate is lecon:
+                self._ignore_next_select = True
+                self.tree.selection_set(noeud)
+                self.tree.see(noeud)
+                break
+
+        self.lesson_title.configure(text=self.txt(lecon, "title"))
+        self._render_content(self.txt(lecon, "content"))
+
+        if lecon.get("type") == "quiz":
+            self._load_quiz(lecon)
+        elif lecon.get("type") not in ("predire", "ordre"):
+            multi = exercice_count(lecon) > 1
+            exo = get_exercice(lecon, self.exo_index)
+            if multi:
+                self.enonce.configure(text=self.txt(exo, "prompt"))
+            self._hints = hints_for(lecon, exo if multi else None, self.lang)
+            self._hint_idx = 0
 
     def cycle_theme(self):
         i = (THEME_ORDER.index(self.theme_name) + 1) % len(THEME_ORDER)

@@ -11,7 +11,7 @@ NOMS_LANGUES = {"fr": "Français", "en": "English"}
 STRINGS = {
     "fr": {
         # Barre d'outils
-        "tb_theme": "🎨 Thème : {label}",
+        "tb_theme": "🎨 {label}",
         "tb_glossaire": "📖 Glossaire",
         "tb_revision": "🎲 Révision",
         "tb_stats": "📊 Stats",
@@ -259,7 +259,7 @@ STRINGS = {
         "dlg_badge_ok": "Badge SVG enregistré avec succès !",
     },
     "en": {
-        "tb_theme": "🎨 Theme: {label}",
+        "tb_theme": "🎨 {label}",
         "tb_glossaire": "📖 Glossary",
         "tb_revision": "🎲 Review",
         "tb_stats": "📊 Stats",
