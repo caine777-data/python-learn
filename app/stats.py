@@ -295,14 +295,14 @@ def badge_svg(streak=0, termines=0, total=133, lang="fr"):
   <rect width="360" height="140" rx="14" fill="url(#bgGrad)" stroke="#3a3d4d" stroke-width="1.5"/>
   <text x="24" y="34" font-family="-apple-system, Segoe UI, Roboto, sans-serif" font-size="16" font-weight="bold" fill="#ffffff">🐍 {titre_label}</text>
   <text x="336" y="34" text-anchor="end" font-family="-apple-system, Segoe UI, Roboto, sans-serif" font-size="13" font-weight="600" fill="#7fb0ff">{niveau_label}</text>
-  
+
   <text x="24" y="68" font-family="-apple-system, Segoe UI, Roboto, sans-serif" font-size="13" fill="#9aa0b4">{streak_label}</text>
   <text x="336" y="68" text-anchor="end" font-family="-apple-system, Segoe UI, Roboto, sans-serif" font-size="13" font-weight="600" fill="#e6e6e6">{prog_label}</text>
-  
+
   <!-- Barre de progression -->
   <rect x="24" y="86" width="312" height="12" rx="6" fill="#15161c"/>
   <rect x="24" y="86" width="{bar_width}" height="12" rx="6" fill="url(#barGrad)"/>
-  
+
   <text x="180" y="122" text-anchor="middle" font-family="-apple-system, Segoe UI, Roboto, sans-serif" font-size="11" fill="#637777">pythonlearn • 100% standard library</text>
 </svg>"""
 

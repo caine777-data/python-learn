@@ -16,10 +16,16 @@ from app.i18n import LANGUES, Translator
 from app.theme import THEME_ORDER, THEMES, assombrir, eclaircir
 from app.version import APP_NAME, AUTEUR, DEPOT, __version__
 from app.vues_exercices import VueOrdre, VuePrediction
-from app.windows import AccueilWindow, Celebration, ExamWindow, FlashcardWindow, PaletteWindow, StepWindow
+from app.windows import (
+    AccueilWindow,
+    Celebration,
+    ExamWindow,
+    FlashcardWindow,
+    PaletteWindow,
+    StepWindow,
+)
 from content import (
     CURRICULUM,
-    GLOSSAIRE,
     ajouter_packs,
     exercice_count,
     find_lesson,
@@ -1066,7 +1072,9 @@ class PythonLearnApp:
     def reset_code(self):
         if not self.current:
             return
-        if messagebox.askyesno(self.tr("dlg_reset_title"), self.tr("dlg_reset_msg"), parent=self.root):
+        if messagebox.askyesno(self.tr("dlg_reset_exo_title"),
+                               self.tr("dlg_reset_exo_msg"),
+                               parent=self.root):
             exo = get_exercice(self.current, self.exo_index)
             self.editor.set_text(exo.get("starter", ""))
             self._on_code_change()

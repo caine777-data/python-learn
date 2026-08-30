@@ -251,8 +251,8 @@ STRINGS = {
         "search_close": "✕",
         # Réinitialisation
         "btn_reset_label": "↻ Recommencer",
-        "dlg_reset_title": "Recommencer l'exercice",
-        "dlg_reset_msg": "Réinitialiser le code de cet exercice à son état de départ ?",
+        "dlg_reset_exo_title": "Recommencer l'exercice",
+        "dlg_reset_exo_msg": "Réinitialiser le code de cet exercice à son état de départ ?",
         # Badge SVG
         "tb_badge": "🏅 Badge SVG",
         "dlg_badge_title": "Exporter mon badge",
@@ -483,8 +483,8 @@ STRINGS = {
         "search_close": "✕",
         # Reset
         "btn_reset_label": "↻ Restart",
-        "dlg_reset_title": "Restart exercise",
-        "dlg_reset_msg": "Reset code for this exercise back to its starting state?",
+        "dlg_reset_exo_title": "Restart exercise",
+        "dlg_reset_exo_msg": "Reset code for this exercise back to its starting state?",
         # SVG Badge
         "tb_badge": "🏅 SVG Badge",
         "dlg_badge_title": "Export my badge",
