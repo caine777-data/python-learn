@@ -441,6 +441,24 @@ L'interface est **entièrement bilingue FR / EN**. Le contenu des leçons se
 traduit progressivement, sans jamais casser quoi que ce soit : **ce qui
 n'est pas encore traduit reste affiché en français**.
 
+Déjà disponibles en anglais :
+
+| Parcours | État |
+|---|---|
+| Les **16 titres de parcours** | ✅ |
+| **1 · Débutant** (16 leçons) | ✅ intégralement |
+| **2 · Intermédiaire** (11 leçons) | ✅ intégralement |
+| **3 · Avancé** (11 leçons) | ✅ intégralement |
+| **16 · Décoder les erreurs** (9 leçons) | ✅ intégralement |
+| Les 10 autres parcours | à faire — affichés en français |
+
+Soit **47 leçons sur 133 (35 %)**. Un anglophone peut donc suivre sans
+rupture toute la progression générale — du tout premier `print()` jusqu'aux
+générateurs, à la programmation objet et aux expressions régulières — puis
+apprendre à décoder les messages d'erreur. Restent les parcours
+thématiques (web, SQLite, turtle, projets…), que l'on choisit selon
+l'envie plutôt que dans l'ordre.
+
 Pour voir où en est le chantier :
 
 ```bash

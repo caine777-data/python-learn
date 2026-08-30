@@ -10,7 +10,7 @@ Pour publier une nouvelle version : modifier __version__ ici, committer,
 puis poser le tag correspondant (ex. `git tag v1.1.0`).
 """
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 
 APP_NAME = "PythonLearn"
 APP_ID = "python-learn"

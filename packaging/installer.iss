@@ -13,7 +13,7 @@
 ; à partir du tag Git). Sans cela, on retombe sur la valeur ci-dessous, qui
 ; doit rester alignée sur app/version.py.
 #ifndef MaVersion
-  #define MaVersion "1.1.0"
+  #define MaVersion "1.2.0"
 #endif
 
 #define MonApp "PythonLearn"
