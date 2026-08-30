@@ -239,6 +239,24 @@ STRINGS = {
             "vierge."),
         "dlg_export_title": "Export",
         "dlg_export_fail": "Impossible d'enregistrer le fichier.",
+        # Palette & Recherche
+        "palette_title": "Aller à la leçon…",
+        "palette_prompt": "Rechercher une leçon ou un mot-clé (Entrée pour ouvrir, Échap pour fermer) :",
+        "palette_empty": "Aucune leçon trouvée pour « {query} »",
+        "search_label": "🔍 Rechercher :",
+        "search_next": "Suivant ▶",
+        "search_prev": "◀ Précédent",
+        "search_count": "{i}/{n}",
+        "search_none": "0 résultat",
+        "search_close": "✕",
+        # Réinitialisation
+        "btn_reset_label": "↻ Recommencer",
+        "dlg_reset_title": "Recommencer l'exercice",
+        "dlg_reset_msg": "Réinitialiser le code de cet exercice à son état de départ ?",
+        # Badge SVG
+        "tb_badge": "🏅 Badge SVG",
+        "dlg_badge_title": "Exporter mon badge",
+        "dlg_badge_ok": "Badge SVG enregistré avec succès !",
     },
     "en": {
         "tb_theme": "🎨 Theme: {label}",
@@ -453,6 +471,24 @@ STRINGS = {
             "The app is starting from a blank progress."),
         "dlg_export_title": "Export",
         "dlg_export_fail": "Could not save the file.",
+        # Palette & Search
+        "palette_title": "Jump to lesson…",
+        "palette_prompt": "Search lesson or keyword (Enter to open, Esc to close):",
+        "palette_empty": "No lesson found for \"{query}\"",
+        "search_label": "🔍 Find:",
+        "search_next": "Next ▶",
+        "search_prev": "◀ Prev",
+        "search_count": "{i}/{n}",
+        "search_none": "0 results",
+        "search_close": "✕",
+        # Reset
+        "btn_reset_label": "↻ Restart",
+        "dlg_reset_title": "Restart exercise",
+        "dlg_reset_msg": "Reset code for this exercise back to its starting state?",
+        # SVG Badge
+        "tb_badge": "🏅 SVG Badge",
+        "dlg_badge_title": "Export my badge",
+        "dlg_badge_ok": "SVG badge saved successfully!",
     },
 }
 

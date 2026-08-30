@@ -16,7 +16,7 @@ from app.i18n import LANGUES, Translator
 from app.theme import THEME_ORDER, THEMES, assombrir, eclaircir
 from app.version import APP_NAME, AUTEUR, DEPOT, __version__
 from app.vues_exercices import VueOrdre, VuePrediction
-from app.windows import AccueilWindow, Celebration, ExamWindow, FlashcardWindow, StepWindow
+from app.windows import AccueilWindow, Celebration, ExamWindow, FlashcardWindow, PaletteWindow, StepWindow
 from content import (
     CURRICULUM,
     GLOSSAIRE,
@@ -24,6 +24,7 @@ from content import (
     exercice_count,
     find_lesson,
     get_exercice,
+    get_glossaire,
     hints_for,
     lesson_done,
     lesson_items,
@@ -327,6 +328,12 @@ class PythonLearnApp:
         self.status.pack(side=tk.LEFT, padx=4)
 
         self.root.bind("<Control-Return>", lambda e: self.run())
+        self.root.bind("<Control-p>", lambda e: self._ouvrir_palette())
+        self.root.bind("<Control-P>", lambda e: self._ouvrir_palette())
+        self.root.bind("<Control-k>", lambda e: self._ouvrir_palette())
+        self.root.bind("<Control-K>", lambda e: self._ouvrir_palette())
+        self.root.bind("<Control-r>", lambda e: self.reset_code())
+        self.root.bind("<Control-R>", lambda e: self.reset_code())
         self.root.bind("<Control-plus>", lambda e: self._zoom(1))
         self.root.bind("<Control-KP_Add>", lambda e: self._zoom(1))
         self.root.bind("<Control-minus>", lambda e: self._zoom(-1))
@@ -1057,11 +1064,48 @@ class PythonLearnApp:
             self._on_code_change()
 
     def reset_code(self):
-        exo = get_exercice(self.current, self.exo_index)
-        self.editor.set_text(exo.get("starter", ""))
-        self._on_code_change()
-        self.feedback.configure(text="")
-        self._clear_console()
+        if not self.current:
+            return
+        if messagebox.askyesno(self.tr("dlg_reset_title"), self.tr("dlg_reset_msg"), parent=self.root):
+            exo = get_exercice(self.current, self.exo_index)
+            self.editor.set_text(exo.get("starter", ""))
+            self._on_code_change()
+            self.feedback.configure(text="")
+            self._clear_console()
+
+    def _ouvrir_palette(self):
+        items = []
+        for level in CURRICULUM:
+            level_title = self.txt(level, "title")
+            for lesson in level["lessons"]:
+                lid = lesson.get("id")
+                ltitle = self.txt(lesson, "title")
+                display = f"[{level_title}] {ltitle}"
+                searchable = f"{level_title} {ltitle} {lid} {self.txt(lesson, 'content', '')}"
+                items.append((lid, display, searchable))
+        PaletteWindow(self.root, self, items, self.C, on_select=self._charger_item)
+
+    def _exporter_badge_svg(self):
+        resume = stats.resume_accueil(self.data, CURRICULUM)
+        svg_code = stats.badge_svg(
+            streak=resume["serie"],
+            termines=resume["faits"],
+            total=resume["total"],
+            lang=self.lang
+        )
+        chemin = filedialog.asksaveasfilename(
+            parent=self.root,
+            title=self.tr("dlg_badge_title"),
+            defaultextension=".svg",
+            filetypes=[("SVG (*.svg)", "*.svg"), ("All files", "*.*")],
+            initialfile="pythonlearn-badge.svg"
+        )
+        if chemin:
+            try:
+                pathlib.Path(chemin).write_text(svg_code, encoding="utf-8")
+                messagebox.showinfo(self.tr("dlg_badge_title"), self.tr("dlg_badge_ok"))
+            except Exception as e:
+                messagebox.showerror(self.tr("dlg_export_title"), str(e))
 
     def _maj_syntaxe(self, err):
         if err is None:
@@ -1227,7 +1271,7 @@ class PythonLearnApp:
             f = var.get().strip().lower()
             txt.configure(state="normal")
             txt.delete("1.0", tk.END)
-            for terme, definition in GLOSSAIRE:
+            for terme, definition in get_glossaire(self.lang):
                 if not f or f in terme.lower() or f in definition.lower():
                     txt.insert(tk.END, terme + "\n", "terme")
                     txt.insert(tk.END, definition + "\n")
@@ -1236,9 +1280,9 @@ class PythonLearnApp:
         remplir()
 
     def _ouvrir_antiseche(self):
-        from content.cheatsheet import CHEATSHEET
-        html = stats.cheatsheet_html(self.tr("cheat_title"), CHEATSHEET,
-                                     auteur=AUTEUR)
+        from content.cheatsheet import get_cheatsheet
+        html = stats.cheatsheet_html(self.tr("cheat_title"), get_cheatsheet(self.lang),
+                                     auteur=AUTEUR, lang=self.lang)
         try:
             fichier = prog.DATA_DIR / "antiseche.html"
             prog.DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -1248,7 +1292,7 @@ class PythonLearnApp:
             messagebox.showinfo(self.tr("cheat_title"), self.tr("cheat_fail"))
 
     def _ouvrir_flashcards(self):
-        cartes = list(GLOSSAIRE)
+        cartes = list(get_glossaire(self.lang))
         if not cartes:
             return
         FlashcardWindow(self.root, self, cartes, self.C)
@@ -1269,13 +1313,13 @@ class PythonLearnApp:
             self.feedback.configure(text=self.tr("fb_revision_due", n=len(dus)),
                                     foreground=self.C["accent"])
             return
-        faits = [i for i in completed if i in ids_exercices]
+        # sinon exercice au hasard parmi les réussis
+        faits = list(completed & ids_exercices)
         if not faits:
-            messagebox.showinfo(self.tr("dlg_revision_title"),
-                                self.tr("dlg_revision_none"))
+            self.feedback.configure(text=self.tr("fb_revision_none"),
+                                    foreground=self.C["muted"])
             return
         self._charger_item(random.choice(faits))
-        self._revision_item = None
         self.feedback.configure(text=self.tr("fb_revision_random"),
                                 foreground=self.C["muted"])
 
@@ -1351,7 +1395,7 @@ class PythonLearnApp:
         parcours = LEVEL_BADGE_NAMES.get(level_id, level_id)
         html = stats.certificat_html(nom, parcours,
                                      date.today().strftime("%d/%m/%Y"),
-                                     auteur=AUTEUR)
+                                     auteur=AUTEUR, lang=self.lang)
         dossier = prog.DATA_DIR / "certificats"
         try:
             dossier.mkdir(parents=True, exist_ok=True)
@@ -1434,6 +1478,8 @@ class PythonLearnApp:
                    command=self._exporter_progression).pack(side=tk.LEFT, padx=4)
         ttk.Button(iorow, text=self.tr("st_import"),
                    command=lambda: self._importer_progression(win)).pack(side=tk.LEFT, padx=4)
+        ttk.Button(iorow, text=self.tr("tb_badge"),
+                   command=self._exporter_badge_svg).pack(side=tk.LEFT, padx=4)
 
         tk.Label(win, text=self.tr("st_7days"), bg=C["bg"], fg=C["muted"]).pack(pady=(8, 0))
         cv = tk.Canvas(win, width=470, height=150, bg=C["panel"], highlightthickness=0)

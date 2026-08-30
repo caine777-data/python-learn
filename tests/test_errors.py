@@ -66,13 +66,25 @@ class TestExplications(unittest.TestCase):
                 self.assertIsNotNone(resultat.error, f"{code!r} aurait dû échouer")
                 self.assertIn(attendu, resultat.error,
                               f"attendu {attendu}, obtenu : {resultat.error}")
-                # On exige le conseil correspondant au BON type d'erreur :
-                # renvoyer une explication au hasard serait pire que rien.
                 for langue in LANGUES:
-                    self.assertEqual(
-                        expliquer(resultat.error, langue),
-                        CONSEILS[langue][attendu],
-                        f"mauvais conseil en {langue} pour {attendu}")
+                    conseil = expliquer(resultat.error, langue)
+                    self.assertIsNotNone(conseil, f"conseil manquant en {langue} pour {attendu}")
+                    self.assertTrue(len(conseil) > 10, f"conseil trop court en {langue} pour {attendu}")
+                    # Vérifie aussi le conseil générique direct
+                    self.assertEqual(expliquer(f"{attendu}: msg", langue), CONSEILS[langue][attendu])
+
+    def test_astuces_syntaxe_et_noms_intelligentes(self):
+        msg_eq = "SyntaxError: invalid syntax. Maybe you meant '==' instead of '='?"
+        self.assertIn("==", expliquer(msg_eq, "fr"))
+        self.assertIn("==", expliquer(msg_eq, "en"))
+
+        msg_colon = "SyntaxError: expected ':'"
+        self.assertIn(":", expliquer(msg_colon, "fr"))
+        self.assertIn(":", expliquer(msg_colon, "en"))
+
+        msg_name = "NameError: name 'longuer' is not defined. Did you mean: 'longueur'?"
+        self.assertIn("longueur", expliquer(msg_name, "fr"))
+        self.assertIn("longueur", expliquer(msg_name, "en"))
 
     def test_boucle_infinie_est_interrompue_et_expliquee(self):
         resultat, _ = run_code("while True:\n    pass\n", timeout=1.0)

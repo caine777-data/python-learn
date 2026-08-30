@@ -4,7 +4,7 @@ Chaque section = (titre, [(code, explication), ...]).
 Le rendu HTML est produit par stats.cheatsheet_html().
 """
 
-CHEATSHEET = [
+CHEATSHEET_FR = [
     ("Variables & types", [
         ("x = 5", "entier (int)"),
         ("pi = 3.14", "flottant (float)"),
@@ -97,3 +97,105 @@ CHEATSHEET = [
         ("from datetime import date", "dates"),
     ]),
 ]
+
+CHEATSHEET_EN = [
+    ("Variables & types", [
+        ("x = 5", "integer (int)"),
+        ("pi = 3.14", "float (float)"),
+        ('s = "text"', "string (str)"),
+        ("ok = True", "boolean (bool)"),
+        ("nothing = None", "null / absence of value"),
+        ("type(x)", "type of a value"),
+        ("int('3'), str(3)", "type conversions"),
+    ]),
+    ("Strings", [
+        ('f"Hello {name}"', "variable insertion (f-string)"),
+        ('"abc".upper()', "→ 'ABC'"),
+        ('"A,B".split(",")', "→ ['A', 'B']"),
+        ('", ".join(liste)', "join a list"),
+        ("len(s)", "length"),
+        ("s[0], s[-1]", "first / last character"),
+        ("s[::-1]", "reverse string"),
+        ('"py" in s', "contains substring?"),
+    ]),
+    ("Lists", [
+        ("l = [1, 2, 3]", "create list"),
+        ("l.append(4)", "append to end"),
+        ("l.pop()", "remove & return last item"),
+        ("l[1:3]", "slicing"),
+        ("len(l)", "length / size"),
+        ("sorted(l)", "sort (new copy)"),
+        ("[x * 2 for x in l]", "list comprehension"),
+        ("sum(l), max(l), min(l)", "aggregates"),
+    ]),
+    ("Dictionaries", [
+        ("d = {'a': 1}", "create dict"),
+        ("d['a']", "access by key"),
+        ("d.get('b', 0)", "default value if key missing"),
+        ("d['b'] = 2", "add / update key"),
+        ("for k, v in d.items():", "iterate over key/value pairs"),
+        ("d.keys(), d.values()", "keys / values"),
+        ("'a' in d", "is key in dict?"),
+    ]),
+    ("Conditions", [
+        ("if x > 0:", "if"),
+        ("elif x == 0:", "else if"),
+        ("else:", "else"),
+        ("a and b / a or b", "and / or"),
+        ("not a", "negation (not)"),
+        ("x in liste", "membership test"),
+        ("y if cond else z", "ternary conditional expression"),
+    ]),
+    ("Loops", [
+        ("for i in range(5):", "i from 0 to 4"),
+        ("for x in liste:", "iterate each element"),
+        ("while condition:", "while loop"),
+        ("break / continue", "exit loop / skip to next"),
+        ("enumerate(l)", "(index, value) tuples"),
+        ("zip(a, b)", "iterate in parallel"),
+    ]),
+    ("Functions", [
+        ("def f(x):", "define function"),
+        ("return x", "return a value"),
+        ("def f(x=1):", "default argument"),
+        ("def f(*args, **kwargs):", "variable arguments"),
+        ("lambda x: x + 1", "anonymous lambda function"),
+    ]),
+    ("Classes", [
+        ("class Chat:", "define a class"),
+        ("def __init__(self, nom):", "constructor"),
+        ("self.nom = nom", "instance attribute"),
+        ("def miauler(self):", "instance method"),
+        ("c = Chat('Felix')", "instantiate"),
+    ]),
+    ("Files", [
+        ("with open('f.txt') as f:", "open in read mode"),
+        ("f.read()", "read whole file"),
+        ("for ligne in f:", "line by line iteration"),
+        ("open('f.txt', 'w')", "open in write mode"),
+        ("f.write(texte)", "write string"),
+    ]),
+    ("Error Handling", [
+        ("try:", "try block"),
+        ("except ValueError:", "catch error"),
+        ("finally:", "always executed"),
+        ("raise ValueError('msg')", "raise custom error"),
+        ("assert x == 1", "verify assumption"),
+    ]),
+    ("Standard Modules", [
+        ("import math", "sqrt, pi, factorial…"),
+        ("import random", "randomness (choice, randint)"),
+        ("import json", "read/write JSON"),
+        ("from collections import Counter", "tally occurrences"),
+        ("import statistics", "mean, median…"),
+        ("from datetime import date", "dates & timestamps"),
+    ]),
+]
+
+CHEATSHEET = CHEATSHEET_FR
+
+
+def get_cheatsheet(lang="fr"):
+    """Renvoie l'antisèche dans la langue demandée (par défaut français)."""
+    return CHEATSHEET_EN if lang == "en" else CHEATSHEET_FR
+

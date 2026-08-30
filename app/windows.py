@@ -417,3 +417,79 @@ class AccueilWindow(tk.Toplevel):
 
     def _basculer(self):
         prog.set_accueil_au_demarrage(self.app.data, self.au_demarrage.get())
+
+
+class PaletteWindow(tk.Toplevel):
+    """Palette de commandes rapide (Ctrl+P / Ctrl+K) : sauter directement à une leçon."""
+
+    def __init__(self, master, app, items, C, on_select):
+        super().__init__(master)
+        self.app = app
+        self.C = C
+        self.items = list(items)  # list of (id, label_display, searchable_text)
+        self.on_select = on_select
+        self.filtres = list(self.items)
+
+        self.title(app.tr("palette_title"))
+        self.configure(bg=C["panel"])
+        self.geometry("560x420")
+        self.resizable(True, True)
+
+        header = tk.Frame(self, bg=C["panel"])
+        header.pack(fill=tk.X, padx=16, pady=(14, 6))
+
+        tk.Label(header, text=app.tr("palette_prompt"), bg=C["panel"], fg=C["muted"],
+                 anchor="w", font=(app.body.cget("family"), 9)).pack(fill=tk.X)
+
+        self.query_var = tk.StringVar()
+        self.entry = tk.Entry(header, textvariable=self.query_var, bg=C["editor"],
+                              fg=C["fg"], insertbackground=C["fg"], relief="flat",
+                              font=(app.body.cget("family"), 12))
+        self.entry.pack(fill=tk.X, pady=(6, 2), ipady=4)
+        self.entry.focus_set()
+
+        self.listbox = tk.Listbox(self, bg=C["editor"], fg=C["fg"],
+                                  selectbackground=C["accent"], selectforeground=C["sel_fg"],
+                                  relief="flat", highlightthickness=0,
+                                  font=(app.body.cget("family"), 10))
+        self.listbox.pack(fill=tk.BOTH, expand=True, padx=16, pady=8)
+
+        self.query_var.trace_add("write", self._on_type)
+        self.entry.bind("<Return>", lambda e: self._valider())
+        self.listbox.bind("<Double-Button-1>", lambda e: self._valider())
+        self.listbox.bind("<Return>", lambda e: self._valider())
+        self.entry.bind("<Down>", self._focus_list)
+        self.entry.bind("<Up>", self._focus_list)
+        self.bind("<Escape>", lambda e: self.destroy())
+
+        self._remplir()
+        self.transient(master)
+
+    def _focus_list(self, event):
+        if self.listbox.size() > 0:
+            self.listbox.focus_set()
+            if not self.listbox.curselection():
+                self.listbox.selection_set(0)
+
+    def _on_type(self, *args):
+        q = self.query_var.get().strip().lower()
+        if not q:
+            self.filtres = list(self.items)
+        else:
+            self.filtres = [it for it in self.items if q in it[2].lower()]
+        self._remplir()
+
+    def _remplir(self):
+        self.listbox.delete(0, tk.END)
+        for _, label, _ in self.filtres:
+            self.listbox.insert(tk.END, label)
+        if self.filtres:
+            self.listbox.selection_set(0)
+
+    def _valider(self):
+        sel = self.listbox.curselection()
+        if sel and sel[0] < len(self.filtres):
+            item_id = self.filtres[sel[0]][0]
+            self.destroy()
+            self.on_select(item_id)
+

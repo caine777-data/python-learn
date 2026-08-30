@@ -41,8 +41,28 @@ THEMES = {
         "kw": "#ff9cf0", "builtin": "#7fd4ff", "num": "#ffb86b",
         "deff": "#ffd400", "str": "#8dff8d", "com": "#bbbbbb",
     },
+    "dracula": {
+        "label": "dracula", "label_en": "dracula",
+        "bg": "#282a36", "panel": "#21222c", "editor": "#1e1f29",
+        "console": "#191a21", "fg": "#f8f8f2", "accent": "#bd93f9",
+        "ok": "#50fa7b", "err": "#ff5555", "muted": "#6272a4",
+        "heading": "#ff79c6", "code": "#f1fa8c", "code_bg": "#1e1f29",
+        "sel_fg": "#ffffff", "curline": "#343746",
+        "kw": "#ff79c6", "builtin": "#8be9fd", "num": "#bd93f9",
+        "deff": "#50fa7b", "str": "#f1fa8c", "com": "#6272a4",
+    },
+    "nord": {
+        "label": "nord", "label_en": "nord",
+        "bg": "#2e3440", "panel": "#3b4252", "editor": "#242933",
+        "console": "#1e222b", "fg": "#eceff4", "accent": "#88c0d0",
+        "ok": "#a3be8c", "err": "#bf616a", "muted": "#81a1c1",
+        "heading": "#81a1c1", "code": "#ebcb8b", "code_bg": "#242933",
+        "sel_fg": "#ffffff", "curline": "#3b4252",
+        "kw": "#81a1c1", "builtin": "#88c0d0", "num": "#b48ead",
+        "deff": "#8fbcbb", "str": "#a3be8c", "com": "#616e88",
+    },
 }
-THEME_ORDER = ["dark", "light", "contrast"]
+THEME_ORDER = ["dark", "light", "dracula", "nord", "contrast"]
 
 
 def melange(hex1, hex2, t):

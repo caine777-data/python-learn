@@ -177,12 +177,15 @@ def dus(srs, today, completed):
 
 
 # ----------------------------------------------------------------- certificat
-def certificat_html(nom, parcours, date_str, auteur=None):
+def certificat_html(nom, parcours, date_str, auteur=None, lang="fr"):
     """Renvoie le HTML d'un certificat imprimable (autonome, sans dépendance)."""
     signature = f" — par {auteur}" if auteur else ""
+    titre_h1 = "Certificate of Completion" if lang == "en" else "Certificat de réussite"
+    phrase = "has successfully completed the track" if lang == "en" else "a terminé avec succès le parcours"
+    page_title = f"Certificate — {parcours}" if lang == "en" else f"Certificat — {parcours}"
     return f"""<!DOCTYPE html>
-<html lang="fr"><head><meta charset="utf-8">
-<title>Certificat — {parcours}</title>
+<html lang="{lang}"><head><meta charset="utf-8">
+<title>{page_title}</title>
 <style>
   body {{ font-family: Georgia, 'Times New Roman', serif; background:#f0f2f5;
          display:flex; justify-content:center; padding:40px; }}
@@ -200,11 +203,11 @@ def certificat_html(nom, parcours, date_str, auteur=None):
 </style></head>
 <body><div class="cert">
   <div class="badge">🏅</div>
-  <h1>Certificat de réussite</h1>
+  <h1>{titre_h1}</h1>
   <div class="sub">PythonLearn</div>
   <div class="nom">{nom}</div>
   <div class="ligne"></div>
-  <p>a terminé avec succès le parcours</p>
+  <p>{phrase}</p>
   <div class="parcours">{parcours}</div>
   <div class="pied"><span>PythonLearn 🐍{signature}</span><span>{date_str}</span></div>
 </div>
@@ -212,7 +215,7 @@ def certificat_html(nom, parcours, date_str, auteur=None):
 </body></html>"""
 
 
-def cheatsheet_html(titre, sections, auteur=None):
+def cheatsheet_html(titre, sections, auteur=None, lang="fr"):
     """Antisèche imprimable (HTML autonome) à partir de sections.
 
     `sections` = liste de (titre_section, [(code, explication), ...]).
@@ -220,6 +223,8 @@ def cheatsheet_html(titre, sections, auteur=None):
     import html as _html
 
     pied = f" — par {auteur}" if auteur else ""
+    sub_title = "PythonLearn — printable cheat sheet (Ctrl+P)" if lang == "en" else "PythonLearn — mémo imprimable (Ctrl+P)"
+    footer_text = f"PythonLearn 🐍 — essential syntax{_html.escape(pied)}" if lang == "en" else f"PythonLearn 🐍 — la syntaxe essentielle{_html.escape(pied)}"
     blocs = []
     for nom_section, lignes in sections:
         items = "\n".join(
@@ -233,7 +238,7 @@ def cheatsheet_html(titre, sections, auteur=None):
         )
     corps = "\n".join(blocs)
     return f"""<!DOCTYPE html>
-<html lang="fr"><head><meta charset="utf-8">
+<html lang="{lang}"><head><meta charset="utf-8">
 <title>{_html.escape(titre)}</title>
 <style>
   * {{ box-sizing: border-box; }}
@@ -257,9 +262,47 @@ def cheatsheet_html(titre, sections, auteur=None):
                  section {{ border-color: #ccc; }} }}
 </style></head><body>
   <h1>🐍 {_html.escape(titre)}</h1>
-  <p class="sub">PythonLearn — mémo imprimable (Ctrl+P)</p>
+  <p class="sub">{sub_title}</p>
   <div class="grid">
 {corps}
   </div>
-  <p class="pied">PythonLearn 🐍 — la syntaxe essentielle{_html.escape(pied)}</p>
+  <p class="pied">{footer_text}</p>
 </body></html>"""
+
+
+def badge_svg(streak=0, termines=0, total=133, lang="fr"):
+    """Génère un badge SVG vectoriel propre et moderne représentant le niveau et les stats."""
+    pourcent = round((termines / total) * 100) if total else 0
+    titre_label = "PythonLearn Profile" if lang == "en" else "Profil PythonLearn"
+    streak_label = f"🔥 {streak} days" if lang == "en" else f"🔥 {streak} jours"
+    prog_label = f"✓ {termines}/{total} ({pourcent}%)"
+    niveau_label = "Advanced" if pourcent >= 75 else ("Intermediate" if pourcent >= 35 else "Beginner")
+    if lang != "en":
+        niveau_label = "Avancé" if pourcent >= 75 else ("Intermédiaire" if pourcent >= 35 else "Débutant")
+    bar_width = max(12, int(3.12 * pourcent)) if pourcent > 0 else 0
+
+    return f"""<svg xmlns="http://www.w3.org/2000/svg" width="360" height="140" viewBox="0 0 360 140" fill="none">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e1f26"/>
+      <stop offset="100%" stop-color="#272935"/>
+    </linearGradient>
+    <linearGradient id="barGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#4d8bf0"/>
+      <stop offset="100%" stop-color="#52c97a"/>
+    </linearGradient>
+  </defs>
+  <rect width="360" height="140" rx="14" fill="url(#bgGrad)" stroke="#3a3d4d" stroke-width="1.5"/>
+  <text x="24" y="34" font-family="-apple-system, Segoe UI, Roboto, sans-serif" font-size="16" font-weight="bold" fill="#ffffff">🐍 {titre_label}</text>
+  <text x="336" y="34" text-anchor="end" font-family="-apple-system, Segoe UI, Roboto, sans-serif" font-size="13" font-weight="600" fill="#7fb0ff">{niveau_label}</text>
+  
+  <text x="24" y="68" font-family="-apple-system, Segoe UI, Roboto, sans-serif" font-size="13" fill="#9aa0b4">{streak_label}</text>
+  <text x="336" y="68" text-anchor="end" font-family="-apple-system, Segoe UI, Roboto, sans-serif" font-size="13" font-weight="600" fill="#e6e6e6">{prog_label}</text>
+  
+  <!-- Barre de progression -->
+  <rect x="24" y="86" width="312" height="12" rx="6" fill="#15161c"/>
+  <rect x="24" y="86" width="{bar_width}" height="12" rx="6" fill="url(#barGrad)"/>
+  
+  <text x="180" y="122" text-anchor="middle" font-family="-apple-system, Segoe UI, Roboto, sans-serif" font-size="11" fill="#637777">pythonlearn • 100% standard library</text>
+</svg>"""
+

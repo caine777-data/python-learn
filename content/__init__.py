@@ -40,7 +40,7 @@ from . import (
     tests_tdd,
     web,
 )
-from .glossaire import GLOSSAIRE
+from .glossaire import GLOSSAIRE, get_glossaire
 from .hints import HINTS
 from .quiz_parcours import QUIZ
 from .traductions import appliquer as _appliquer_traductions

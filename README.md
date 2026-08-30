@@ -33,7 +33,7 @@ pour de vrai et la réussite est vérifiée automatiquement.
 - ✅ **Révision espacée** : les exercices reviennent à intervalles croissants (1, 3, 7, 16… jours)
 - ✅ **Certificat** de fin de parcours (HTML imprimable, à ton nom)
 - ✅ Confort d'édition : auto-fermeture des parenthèses, `Ctrl+/` pour commenter, indentation de bloc
-- ✅ **Interface bilingue FR / EN** (bascule en un clic ; le contenu des leçons reste en français)
+- ✅ **Application entièrement bilingue FR / EN** (interface et 100 % des leçons traduits, bascule en un clic)
 - ✅ **Écran d'accueil** : série de jours, progression, reprise en un clic,
   et **rattrapage ciblé** sur les exercices qui t'ont le plus résisté
 - ✅ **Packs de leçons** : ajoute tes propres exercices avec un simple
@@ -437,29 +437,35 @@ La progression est stockée dans `~/.python-learn/progress.json`
 
 ## 🌍 Traduire l'application
 
-L'interface est **entièrement bilingue FR / EN**. Le contenu des leçons se
-traduit progressivement, sans jamais casser quoi que ce soit : **ce qui
-n'est pas encore traduit reste affiché en français**.
+L'application est **entièrement bilingue FR / EN** : l'interface utilisateur
+comme la totalité des 16 parcours sont traduits en anglais.
 
-Déjà disponibles en anglais :
+État des traductions :
 
 | Parcours | État |
 |---|---|
-| Les **16 titres de parcours** | ✅ |
+| Les **16 titres de parcours** | ✅ 16 / 16 |
 | **1 · Débutant** (16 leçons) | ✅ intégralement |
 | **2 · Intermédiaire** (11 leçons) | ✅ intégralement |
 | **3 · Avancé** (11 leçons) | ✅ intégralement |
+| **4 · Expert** (11 leçons) | ✅ intégralement |
+| **5 · Scripts & automatisation** (7 leçons) | ✅ intégralement |
+| **6 · Interfaces graphiques** (6 leçons) | ✅ intégralement |
+| **7 · Python & le web** (6 leçons) | ✅ intégralement |
+| **8 · Administrer son PC** (6 leçons) | ✅ intégralement |
+| **9 · Bases de données (SQLite)** (7 leçons) | ✅ intégralement |
+| **10 · Dessiner (turtle)** (6 leçons) | ✅ intégralement |
+| **11 · Algorithmes & structures de données** (8 leçons) | ✅ intégralement |
+| **12 · Manipuler des données** (7 leçons) | ✅ intégralement |
+| **13 · Tests & TDD** (6 leçons) | ✅ intégralement |
+| **14 · Projets guidés** (6 leçons) | ✅ intégralement |
+| **15 · Entraînement** (10 leçons) | ✅ intégralement |
 | **16 · Décoder les erreurs** (9 leçons) | ✅ intégralement |
-| Les 10 autres parcours | à faire — affichés en français |
 
-Soit **47 leçons sur 133 (35 %)**. Un anglophone peut donc suivre sans
-rupture toute la progression générale — du tout premier `print()` jusqu'aux
-générateurs, à la programmation objet et aux expressions régulières — puis
-apprendre à décoder les messages d'erreur. Restent les parcours
-thématiques (web, SQLite, turtle, projets…), que l'on choisit selon
-l'envie plutôt que dans l'ordre.
+Soit **133 leçons sur 133 (100 %)**. Un apprenant anglophone peut donc
+bénéficier de l'intégralité du cursus et des projets.
 
-Pour voir où en est le chantier :
+Pour vérifier l'état des traductions à tout moment :
 
 ```bash
 python main.py --etat-traduction

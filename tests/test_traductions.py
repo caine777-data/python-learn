@@ -100,11 +100,49 @@ class TestEtatTraduction(unittest.TestCase):
         for ligne in rapport:
             self.assertLessEqual(ligne["traduites"], ligne["total"])
 
-    def test_parcours_erreurs_entierement_traduit(self):
+    def test_tous_les_parcours_entierement_traduits(self):
         rapport = {ligne["id"]: ligne for ligne in etat_traduction("en")}
-        erreurs = rapport["erreurs"]
-        self.assertEqual(erreurs["traduites"], erreurs["total"],
-                         "le parcours « Décoder les erreurs » sert de modèle")
+        for niveau in CURRICULUM:
+            nid = niveau["id"]
+            self.assertEqual(
+                rapport[nid]["traduites"], rapport[nid]["total"],
+                f"le parcours {nid} doit être traduit à 100%"
+            )
+
+    def test_glossaire_et_cheatsheet_bilingues(self):
+        from content.cheatsheet import get_cheatsheet
+        from content.glossaire import get_glossaire
+        gl_fr = get_glossaire("fr")
+        gl_en = get_glossaire("en")
+        self.assertEqual(len(gl_fr), len(gl_en))
+        self.assertGreater(len(gl_fr), 0)
+
+        cs_fr = get_cheatsheet("fr")
+        cs_en = get_cheatsheet("en")
+        self.assertEqual(len(cs_fr), len(cs_en))
+        self.assertGreater(len(cs_fr), 0)
+
+    def test_badge_svg_generation(self):
+        from app.stats import badge_svg
+        svg_fr = badge_svg(streak=5, termines=40, total=133, lang="fr")
+        svg_en = badge_svg(streak=5, termines=40, total=133, lang="en")
+        self.assertTrue(svg_fr.startswith("<svg") and svg_fr.endswith("</svg>"))
+        self.assertTrue(svg_en.startswith("<svg") and svg_en.endswith("</svg>"))
+        self.assertIn("Profil", svg_fr)
+        self.assertIn("Profile", svg_en)
+
+    def test_certificat_et_cheatsheet_html(self):
+        from app.stats import certificat_html, cheatsheet_html
+        from content.cheatsheet import get_cheatsheet
+        cert_fr = certificat_html("Sam", "Débutant", "01/01/2026", lang="fr")
+        cert_en = certificat_html("Sam", "Beginner", "01/01/2026", lang="en")
+        self.assertIn("Certificat de réussite", cert_fr)
+        self.assertIn("Certificate of Completion", cert_en)
+
+        cs_fr = cheatsheet_html("Antisèche", get_cheatsheet("fr"), lang="fr")
+        cs_en = cheatsheet_html("Cheat Sheet", get_cheatsheet("en"), lang="en")
+        self.assertIn("mémo imprimable", cs_fr)
+        self.assertIn("printable cheat sheet", cs_en)
 
     def test_langue_absente_donne_zero(self):
         for ligne in etat_traduction("klingon"):
@@ -113,3 +151,4 @@ class TestEtatTraduction(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

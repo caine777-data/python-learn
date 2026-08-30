@@ -49,10 +49,16 @@ class CodeEditor(tk.Frame):
         self.text.bind("<ISO_Left_Tab>", self._on_shift_tab)
         self.text.bind("<Control-slash>", self._on_comment)
         self.text.bind("<Control-space>", self._autocomplete)
+        self.text.bind("<Control-f>", self.toggle_search)
+        self.text.bind("<Control-F>", self.toggle_search)
         for o, c in [("(", ")"), ("[", "]"), ("{", "}")]:
             self.text.bind(o, self._auto_pair(o, c))
         for q in ("\"", "'"):
             self.text.bind(q, self._auto_pair(q, q))
+
+        self._search_bar = None
+        self._search_matches = []
+        self._search_idx = -1
 
     # ----- contenu
     def get(self):
@@ -85,10 +91,125 @@ class CodeEditor(tk.Frame):
         self.text.tag_configure("com", foreground=C["com"])
         self.text.tag_configure("errline", underline=True, foreground=C["err"])
         self.text.tag_configure("pasapas", background=C["accent"], foreground=C["sel_fg"])
+        self.text.tag_configure("search_match", background=C.get("code_bg", "#343746"), foreground=C.get("code", "#ffd479"))
+        self.text.tag_configure("search_current", background=C.get("accent", "#4d8bf0"), foreground=C.get("sel_fg", "#ffffff"))
         self.text.tag_configure("curline", background=C.get("curline", C["code_bg"]))
         self.text.tag_lower("curline")  # sous la coloration et les autres surlignages
+        if self._search_bar:
+            self._search_bar.configure(bg=C.get("panel", "#272935"))
+            self._search_entry.configure(bg=C.get("editor", "#15161c"), fg=C.get("fg", "#ffffff"), insertbackground=C.get("fg", "#ffffff"))
+            self._search_lbl_count.configure(bg=C.get("panel", "#272935"), fg=C.get("muted", "#9aa0b4"))
         self.highlight()
         self._maj_ligne_courante()
+
+    def toggle_search(self, _e=None):
+        """Ouvre ou focalise la barre de recherche dans l'éditeur (Ctrl+F)."""
+        if self._search_bar is None:
+            self._build_search_bar()
+        self._search_bar.pack(side=tk.TOP, fill=tk.X, before=self.text)
+        self._search_entry.focus_set()
+        self._search_entry.select_range(0, tk.END)
+        self._on_search_query()
+        return "break"
+
+    def _build_search_bar(self):
+        C = self._C or {}
+        bar = tk.Frame(self, bg=C.get("panel", "#272935"), padx=8, pady=4)
+        lbl = tk.Label(bar, text="🔍", bg=C.get("panel", "#272935"), fg=C.get("muted", "#9aa0b4"))
+        lbl.pack(side=tk.LEFT, padx=(0, 4))
+        self._search_var = tk.StringVar()
+        entry = tk.Entry(bar, textvariable=self._search_var, bg=C.get("editor", "#15161c"),
+                         fg=C.get("fg", "#ffffff"), insertbackground=C.get("fg", "#ffffff"),
+                         relief="flat", font=self.font)
+        entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=4, ipady=2)
+
+        lbl_count = tk.Label(bar, text="", bg=C.get("panel", "#272935"), fg=C.get("muted", "#9aa0b4"),
+                             font=(self.font.cget("family"), 9))
+        lbl_count.pack(side=tk.LEFT, padx=6)
+
+        btn_prev = tk.Button(bar, text="▲", command=self._find_prev, relief="flat",
+                             bg=C.get("panel", "#272935"), fg=C.get("fg", "#ffffff"),
+                             activebackground=C.get("curline", "#343746"), activeforeground=C.get("fg", "#ffffff"),
+                             padx=4, pady=0)
+        btn_prev.pack(side=tk.LEFT, padx=1)
+
+        btn_next = tk.Button(bar, text="▼", command=self._find_next, relief="flat",
+                             bg=C.get("panel", "#272935"), fg=C.get("fg", "#ffffff"),
+                             activebackground=C.get("curline", "#343746"), activeforeground=C.get("fg", "#ffffff"),
+                             padx=4, pady=0)
+        btn_next.pack(side=tk.LEFT, padx=1)
+
+        btn_close = tk.Button(bar, text="✕", command=self._close_search, relief="flat",
+                              bg=C.get("panel", "#272935"), fg=C.get("muted", "#9aa0b4"),
+                              activebackground=C.get("curline", "#343746"), activeforeground=C.get("err", "#ff5555"),
+                              padx=4, pady=0)
+        btn_close.pack(side=tk.LEFT, padx=(4, 0))
+
+        self._search_bar = bar
+        self._search_entry = entry
+        self._search_lbl_count = lbl_count
+        self._search_var.trace_add("write", self._on_search_query)
+        entry.bind("<Return>", lambda e: self._find_next())
+        entry.bind("<Shift-Return>", lambda e: self._find_prev())
+        entry.bind("<Escape>", lambda e: self._close_search())
+
+    def _close_search(self):
+        if self._search_bar:
+            self._search_bar.pack_forget()
+        self.text.tag_remove("search_match", "1.0", "end")
+        self.text.tag_remove("search_current", "1.0", "end")
+        self._search_matches = []
+        self._search_idx = -1
+        self.text.focus_set()
+
+    def _on_search_query(self, *args):
+        self.text.tag_remove("search_match", "1.0", "end")
+        self.text.tag_remove("search_current", "1.0", "end")
+        self._search_matches = []
+        self._search_idx = -1
+        q = self._search_var.get() if hasattr(self, "_search_var") else ""
+        if not q:
+            if hasattr(self, "_search_lbl_count"):
+                self._search_lbl_count.configure(text="")
+            return
+
+        start = "1.0"
+        while True:
+            pos = self.text.search(q, start, stopindex=tk.END, nocase=True)
+            if not pos:
+                break
+            end = f"{pos}+{len(q)}c"
+            self._search_matches.append((pos, end))
+            self.text.tag_add("search_match", pos, end)
+            start = end
+
+        total = len(self._search_matches)
+        if total > 0:
+            self._search_idx = 0
+            self._highlight_current_match()
+        else:
+            self._search_lbl_count.configure(text="0")
+
+    def _find_next(self):
+        if not self._search_matches:
+            return
+        self._search_idx = (self._search_idx + 1) % len(self._search_matches)
+        self._highlight_current_match()
+
+    def _find_prev(self):
+        if not self._search_matches:
+            return
+        self._search_idx = (self._search_idx - 1) % len(self._search_matches)
+        self._highlight_current_match()
+
+    def _highlight_current_match(self):
+        self.text.tag_remove("search_current", "1.0", "end")
+        if 0 <= self._search_idx < len(self._search_matches):
+            pos, end = self._search_matches[self._search_idx]
+            self.text.tag_add("search_current", pos, end)
+            self.text.see(pos)
+            self._search_lbl_count.configure(text=f"{self._search_idx + 1}/{len(self._search_matches)}")
+
 
     def refresh_font(self):
         self.gutter.configure(font=self.font)

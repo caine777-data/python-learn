@@ -1,6 +1,6 @@
 """Glossaire : termes essentiels, consultable dans l'application."""
 
-GLOSSAIRE = [
+GLOSSAIRE_FR = [
     ("Variable", "Un nom associé à une valeur, comme une étiquette sur une "
                  "boîte. Ex. : age = 30."),
     ("Fonction", "Un bloc de code réutilisable, défini avec def, qui peut "
@@ -45,3 +45,48 @@ GLOSSAIRE = [
     ("JSON", "Un format texte pour échanger des données structurées, proche "
              "des dictionnaires Python."),
 ]
+
+GLOSSAIRE_EN = [
+    ("Variable", "A name bound to a value, like a label on a box. Ex.: age = 30."),
+    ("Function", "A reusable block of code, defined with def, that can accept "
+                 "parameters and return a result with return."),
+    ("Parameter / Argument", "A parameter is the variable declared by the "
+                 "function; an argument is the actual value passed in the call."),
+    ("String (str)", "Text enclosed in quotes. Type str. Ex.: \"Hello\"."),
+    ("Integer (int)", "A whole number without a decimal point. Ex.: 42."),
+    ("Float (float)", "A number with a decimal point. Ex.: 3.14."),
+    ("Boolean (bool)", "A truth value: True or False."),
+    ("List", "An ordered and mutable collection, enclosed in square brackets. "
+             "Ex.: [1, 2, 3]."),
+    ("Tuple", "An ordered but IMMUTABLE collection, enclosed in parentheses. "
+              "Ex.: (1, 2)."),
+    ("Dictionary (dict)", "A collection of key→value pairs, enclosed in curly "
+              "braces. Ex.: {\"name\": \"Ada\"}."),
+    ("Set (set)", "An unordered collection of unique values. Ex.: {1, 2, 3}."),
+    ("Loop", "A control structure that repeats code: for (over an iterable) or "
+             "while (as long as a condition is true)."),
+    ("Condition", "A decision branch in the program using if / elif / else."),
+    ("Indentation", "The spacing (4 spaces) defining code blocks. Essential in Python."),
+    ("Module", "A ready-to-use toolbox loaded with import. Ex.: import math."),
+    ("Method", "A function attached to an object, called with dot notation. "
+               "Ex.: text.upper()."),
+    ("Exception", "A runtime error. Handled with try / except."),
+    ("f-string", "A string prefixed with f where variables/expressions are "
+                 "inserted inside curly braces. Ex.: f\"{name} is {age} years old\"."),
+    ("Index", "The position of an item in a sequence, starting at 0. "
+              "Ex.: list[0] is the first item."),
+    ("Object", "A data structure combining state (attributes) and behaviour "
+               "(methods). OOP consists of creating custom object types."),
+    ("Class", "The blueprint describing how to construct objects, defined with class."),
+    ("return", "The keyword that outputs a value from a function and terminates its execution."),
+    ("API", "A web endpoint that returns structured data (often in JSON) rather than a webpage."),
+    ("JSON", "A text format for exchanging structured data, very similar to Python dictionaries."),
+]
+
+GLOSSAIRE = GLOSSAIRE_FR
+
+
+def get_glossaire(lang="fr"):
+    """Renvoie le glossaire dans la langue demandée (par défaut français)."""
+    return GLOSSAIRE_EN if lang == "en" else GLOSSAIRE_FR
+

@@ -134,5 +134,40 @@ def expliquer(texte_erreur, langue="fr"):
     lignes = [ligne for ligne in texte_erreur.strip().splitlines() if ligne.strip()]
     if not lignes:
         return None
-    type_erreur = lignes[-1].split(":", 1)[0].strip()
+    derniere = lignes[-1]
+    type_erreur = derniere.split(":", 1)[0].strip()
+    detail = derniere.split(":", 1)[1].strip() if ":" in derniere else ""
+
+    # Détection plus fine pour les cas classiques
+    if type_erreur == "SyntaxError":
+        if "invalid syntax. Maybe you meant '=='" in detail or "cannot assign to" in detail:
+            return (
+                "Astuce : tu as utilisé un simple « = » (affectation) au lieu de « == » (comparaison). "
+                "Utilise « == » pour tester une égalité."
+                if langue == "fr" else
+                "Tip: you used a single '=' (assignment) instead of '==' (comparison). "
+                "Use '==' to test for equality."
+            )
+        if "expected ':'" in detail:
+            return (
+                "Astuce : il manque les deux-points « : » à la fin de la ligne d'en-tête (if, for, while, def, class)."
+                if langue == "fr" else
+                "Tip: missing colon ':' at the end of the header line (if, for, while, def, class)."
+            )
+        if "was never closed" in detail or "unclosed" in detail:
+            return (
+                "Astuce : une parenthèse, un crochet ou un guillemet n'a pas été refermé."
+                if langue == "fr" else
+                "Tip: a bracket, parenthesis, or quote was not closed."
+            )
+
+    if type_erreur == "NameError" and "Did you mean:" in detail:
+        sugg = detail.split("Did you mean:")[-1].strip().strip("?'\"")
+        return (
+            f"Nom inconnu. Voulais-tu écrire « {sugg} » ?"
+            if langue == "fr" else
+            f"Unknown name. Did you mean \"{sugg}\"?"
+        )
+
     return conseils.get(type_erreur)
+
