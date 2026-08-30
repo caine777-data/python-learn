@@ -13,6 +13,7 @@ le délai imparti.
 import builtins as _builtins
 import contextlib
 import ctypes
+import difflib
 import io
 import sys
 import threading
@@ -114,6 +115,28 @@ def _interrompre(thread, tentatives=6, pause=0.25):
     return not thread.is_alive()
 
 
+def suggerer_nom(exc, texte, namespace):
+    """Ajoute « Did you mean: ... » à une NameError, comme le fait un terminal.
+
+    traceback.format_exception_only ne calcule PAS cette suggestion : elle
+    demande de connaître les noms disponibles, que seul l'appelant possède.
+    Sans cela, l'apprenant qui écrit « prin » reçoit un conseil générique
+    là où le vrai problème tient en un caractère.
+    """
+    if not isinstance(exc, NameError):
+        return texte
+    nom = getattr(exc, "name", None)
+    if not nom:
+        return texte
+
+    candidats = [c for c in set(namespace) | set(dir(_builtins))
+                 if not c.startswith("_")]
+    proches = difflib.get_close_matches(nom, candidats, n=1, cutoff=0.7)
+    if proches and proches[0] != nom:
+        return f"{texte}. Did you mean: '{proches[0]}'?"
+    return texte
+
+
 def run_code(code, namespace=None, timeout=6.0, safe=False, allow=None):
     """
     Exécute `code` et capture sa sortie standard.
@@ -170,6 +193,7 @@ def run_code(code, namespace=None, timeout=6.0, safe=False, allow=None):
         error_text = "".join(
             traceback.format_exception_only(type(exc), exc)
         ).strip()
+        error_text = suggerer_nom(exc, error_text, namespace)
 
     return (
         ExecutionResult(output=buffer.getvalue(), error=error_text, timed_out=timed_out),
