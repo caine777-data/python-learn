@@ -384,6 +384,17 @@ class AccueilWindow(tk.Toplevel):
             tk.Label(self, text=app.tr("acc_termine"), bg=C["panel"], fg=C["ok"],
                      wraplength=380, justify="center").pack(pady=4)
 
+        from app.stats import defi_du_jour
+        from content import CURRICULUM
+        defi = defi_du_jour(CURRICULUM)
+        if defi:
+            fait = defi["id"] in app.data.get("completed", [])
+            symb = "✓ " if fait else "⚡ "
+            title = defi["title_en"] if getattr(app, "lang", "fr") == "en" else defi["title"]
+            lbl_btn = f"{symb}{app.tr('acc_defi')} : {title}"
+            ttk.Button(principal, text=lbl_btn,
+                       command=lambda i=defi["id"]: self._aller(i)).pack(pady=(6, 0))
+
         # --- rattrapage ciblé --------------------------------------------
         if resume["difficiles"]:
             tk.Label(self, text=app.tr("acc_difficiles"), bg=C["panel"],
@@ -492,4 +503,142 @@ class PaletteWindow(tk.Toplevel):
             item_id = self.filtres[sel[0]][0]
             self.destroy()
             self.on_select(item_id)
+
+
+class BytecodeWindow(tk.Toplevel):
+    """Affiche le désassemblage Bytecode CPython du code courant avec explications."""
+
+    def __init__(self, master, app, code_source, C):
+        super().__init__(master)
+        self.title("⚙ " + app.tr("tb_bytecode"))
+        self.geometry("720x540")
+        self.configure(bg=C["bg"])
+
+        top = tk.Frame(self, bg=C["bg"], padx=14, pady=10)
+        top.pack(fill=tk.X)
+        tk.Label(top, text="⚙ " + app.tr("bytecode_title"),
+                 bg=C["bg"], fg=C["heading"], font=(app.body.cget("family"), 12, "bold")).pack(anchor="w")
+        tk.Label(top, text=app.tr("bytecode_sub"),
+                 bg=C["bg"], fg=C["muted"], font=app.body).pack(anchor="w", pady=(2, 0))
+
+        wrap = tk.Frame(self, bg=C["bg"], padx=14, pady=(0, 14))
+        wrap.pack(fill=tk.BOTH, expand=True)
+
+        txt = tk.Text(wrap, wrap="none", bg=C["editor"], fg=C["fg"],
+                      insertbackground=C["fg"], relief="flat", font=app.code_font, padx=10, pady=10)
+        ysb = ttk.Scrollbar(wrap, orient="vertical", command=txt.yview)
+        xsb = ttk.Scrollbar(wrap, orient="horizontal", command=txt.xview)
+        txt.configure(yscrollcommand=ysb.set, xscrollcommand=xsb.set)
+
+        txt.grid(row=0, column=0, sticky="nsew")
+        ysb.grid(row=0, column=1, sticky="ns")
+        xsb.grid(row=1, column=0, sticky="ew")
+        wrap.grid_rowconfigure(0, weight=1)
+        wrap.grid_columnconfigure(0, weight=1)
+
+        import dis
+        import io
+        try:
+            compiled = compile(code_source, "<editeur>", "exec")
+            buf = io.StringIO()
+            dis.dis(compiled, file=buf)
+            txt.insert(tk.END, buf.getvalue())
+        except Exception as e:
+            txt.insert(tk.END, f"Impossible de compiler le code :\n{e}")
+
+        txt.configure(state="disabled")
+        self.bind("<Escape>", lambda e: self.destroy())
+        self.transient(master)
+
+
+class SqliteViewerWindow(tk.Toplevel):
+    """Explorateur graphique de bases de données SQLite en mémoire ou sur disque."""
+
+    def __init__(self, master, app, code_or_path, C):
+        super().__init__(master)
+        self.title("🗄 " + app.tr("tb_sqlite"))
+        self.geometry("780x560")
+        self.configure(bg=C["bg"])
+        self.app = app
+        self.C = C
+
+        top = tk.Frame(self, bg=C["bg"], padx=14, pady=10)
+        top.pack(fill=tk.X)
+        tk.Label(top, text="🗄 " + app.tr("sqlite_viewer_title"),
+                 bg=C["bg"], fg=C["heading"], font=(app.body.cget("family"), 12, "bold")).pack(anchor="w")
+
+        import sqlite3
+        self.conn = sqlite3.connect(":memory:")
+        try:
+            if isinstance(code_or_path, str):
+                if code_or_path.endswith(".db") or code_or_path.endswith(".sqlite"):
+                    self.conn = sqlite3.connect(code_or_path)
+                else:
+                    scope = {"sqlite3": sqlite3, "conn": self.conn}
+                    try:
+                        exec(code_or_path, scope)
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
+        tables_row = tk.Frame(self, bg=C["bg"], padx=14, pady=4)
+        tables_row.pack(fill=tk.X)
+        tk.Label(tables_row, text=app.tr("sqlite_table_label"), bg=C["bg"],
+                 fg=C["muted"], font=app.body).pack(side=tk.LEFT, padx=(0, 6))
+
+        self.table_var = tk.StringVar()
+        self.cb_tables = ttk.Combobox(tables_row, textvariable=self.table_var, state="readonly")
+        self.cb_tables.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.cb_tables.bind("<<ComboboxSelected>>", self._charger_table)
+
+        tree_wrap = tk.Frame(self, bg=C["bg"], padx=14, pady=8)
+        tree_wrap.pack(fill=tk.BOTH, expand=True)
+        self.tree = ttk.Treeview(tree_wrap, show="headings")
+        ysb = ttk.Scrollbar(tree_wrap, orient="vertical", command=self.tree.yview)
+        xsb = ttk.Scrollbar(tree_wrap, orient="horizontal", command=self.tree.xview)
+        self.tree.configure(yscrollcommand=ysb.set, xscrollcommand=xsb.set)
+
+        self.tree.grid(row=0, column=0, sticky="nsew")
+        ysb.grid(row=0, column=1, sticky="ns")
+        xsb.grid(row=1, column=0, sticky="ew")
+        tree_wrap.grid_rowconfigure(0, weight=1)
+        tree_wrap.grid_columnconfigure(0, weight=1)
+
+        self._lister_tables()
+        self.bind("<Escape>", lambda e: self.destroy())
+        self.transient(master)
+
+    def _lister_tables(self):
+        try:
+            cur = self.conn.cursor()
+            cur.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;")
+            tables = [row[0] for row in cur.fetchall() if not row[0].startswith("sqlite_")]
+            self.cb_tables["values"] = tables
+            if tables:
+                self.cb_tables.current(0)
+                self._charger_table()
+        except Exception:
+            pass
+
+    def _charger_table(self, *args):
+        table = self.table_var.get()
+        if not table:
+            return
+        self.tree.delete(*self.tree.get_children())
+        try:
+            cur = self.conn.cursor()
+            cur.execute(f"PRAGMA table_info('{table}');")
+            cols = [row[1] for row in cur.fetchall()]
+            self.tree["columns"] = cols
+            for col in cols:
+                self.tree.heading(col, text=col)
+                self.tree.column(col, width=120, anchor="center")
+
+            cur.execute(f"SELECT * FROM '{table}' LIMIT 200;")
+            for row in cur.fetchall():
+                self.tree.insert("", tk.END, values=row)
+        except Exception:
+            pass
+
 

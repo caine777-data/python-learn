@@ -83,6 +83,7 @@ class CodeEditor(tk.Frame):
         self.text.configure(bg=C["editor"], fg=C["fg"], insertbackground=C["fg"],
                             selectbackground=C["accent"])
         self.gutter.configure(bg=C["code_bg"], fg=C["muted"])
+        self.gutter.tag_configure("gutter_active", foreground=C["accent"])
         self.text.tag_configure("kw", foreground=C["kw"])
         self.text.tag_configure("builtin", foreground=C["builtin"])
         self.text.tag_configure("num", foreground=C["num"])
@@ -231,6 +232,11 @@ class CodeEditor(tk.Frame):
         self.gutter.insert("1.0", "\n".join(str(i) for i in range(1, n + 1)))
         self.gutter.configure(state="disabled")
         self.gutter.yview_moveto(self.text.yview()[0])
+        try:
+            ligne = int(self.text.index("insert").split(".")[0])
+            self.gutter.tag_add("gutter_active", f"{ligne}.0", f"{ligne}.end")
+        except Exception:
+            pass
 
     # ----- coloration
     def highlight(self):
@@ -269,10 +275,15 @@ class CodeEditor(tk.Frame):
             self.on_change()
 
     def _maj_ligne_courante(self, _e=None):
-        """Surligne discrètement la ligne où se trouve le curseur."""
+        """Surligne discrètement la ligne où se trouve le curseur et sa gouttière."""
         self.text.tag_remove("curline", "1.0", "end")
-        ligne = int(self.text.index("insert").split(".")[0])
-        self.text.tag_add("curline", f"{ligne}.0", f"{ligne + 1}.0")
+        self.gutter.tag_remove("gutter_active", "1.0", "end")
+        try:
+            ligne = int(self.text.index("insert").split(".")[0])
+            self.text.tag_add("curline", f"{ligne}.0", f"{ligne + 1}.0")
+            self.gutter.tag_add("gutter_active", f"{ligne}.0", f"{ligne}.end")
+        except Exception:
+            pass
 
     def _verifier_syntaxe(self):
         """Compile le code en arrière-plan et souligne la ligne fautive."""

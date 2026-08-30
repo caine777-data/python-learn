@@ -236,3 +236,92 @@ class VueOrdre(_VueBase):
         if rang:
             texte += "  " + self.tr("ord_indice", n=rang)
         self.retour.configure(text=texte, foreground=C["err"])
+
+
+class VueTurtle(_VueBase):
+    """Vue interactive pour exécuter et observer les tracés de la tortue sur Canvas."""
+
+    def __init__(self, parent, app):
+        super().__init__(parent, app)
+        import turtle
+        self.turtle_mod = turtle
+        f = self.frame
+
+        self.titre = ttk.Label(f, text="", style="Title.TLabel", wraplength=720, justify="left")
+        self.titre.pack(anchor="w", padx=16, pady=(10, 4))
+
+        self.enonce = ttk.Label(f, text="", style="Muted.TLabel", wraplength=720, justify="left")
+        self.enonce.pack(anchor="w", padx=16, pady=(0, 6))
+
+        # Zone Canvas de dessin
+        canvas_wrap = tk.Frame(f, bg=app.C["panel"], padx=2, pady=2)
+        canvas_wrap.pack(fill=tk.BOTH, expand=True, padx=16, pady=(0, 6))
+        self.canvas = tk.Canvas(canvas_wrap, bg="#ffffff", highlightthickness=0, height=280)
+        self.canvas.pack(fill=tk.BOTH, expand=True)
+
+        self.screen = turtle.TurtleScreen(self.canvas)
+        self.screen.bgcolor("#ffffff")
+        self.t = turtle.RawTurtle(self.screen)
+        self.t.speed(0)
+
+        # Barre d'actions
+        barre = ttk.Frame(f)
+        barre.pack(fill=tk.X, padx=16, pady=(0, 8))
+        self.btn_run = ttk.Button(barre, text="", command=self.executer_code, style="Primary.TButton")
+        self.btn_run.pack(side=tk.LEFT, padx=(0, 6))
+        self.btn_reset = ttk.Button(barre, text="", command=self.reinitialiser_toile)
+        self.btn_reset.pack(side=tk.LEFT, padx=6)
+        self.feedback = ttk.Label(barre, text="", style="TLabel")
+        self.feedback.pack(side=tk.LEFT, padx=10)
+
+    def traduire(self):
+        self.titre.configure(text=self.tr("turtle_titre"))
+        self.enonce.configure(text=self.tr("turtle_enonce"))
+        self.btn_run.configure(text=self.tr("btn_run"))
+        self.btn_reset.configure(text=self.tr("turtle_clear"))
+
+    def charger(self, lecon):
+        self.lecon = lecon
+        self.reinitialiser_toile()
+        self.traduire()
+        if self.lecon.get("starter"):
+            self.executer_script(self.lecon.get("starter"))
+
+    def reinitialiser_toile(self):
+        try:
+            self.t.reset()
+            self.t.speed(0)
+            self.screen.clear()
+            self.screen.bgcolor("#ffffff")
+            self.feedback.configure(text="")
+        except Exception:
+            pass
+
+    def executer_script(self, code):
+        self.reinitialiser_toile()
+        scope = {
+            "forward": self.t.forward, "fd": self.t.fd,
+            "backward": self.t.backward, "bk": self.t.bk,
+            "right": self.t.right, "rt": self.t.rt,
+            "left": self.t.left, "lt": self.t.lt,
+            "penup": self.t.penup, "up": self.t.up,
+            "pendown": self.t.pendown, "down": self.t.down,
+            "color": self.t.color, "pencolor": self.t.pencolor,
+            "fillcolor": self.t.fillcolor, "begin_fill": self.t.begin_fill,
+            "end_fill": self.t.end_fill, "circle": self.t.circle,
+            "dot": self.t.dot, "speed": self.t.speed,
+            "goto": self.t.goto, "setheading": self.t.setheading,
+            "t": self.t, "turtle": self.t
+        }
+        try:
+            exec(code, scope)
+            self.feedback.configure(text=self.tr("syntax_ok"), foreground=self.app.C["ok"])
+            if self.lecon:
+                self.app.valider_item(self.lecon["id"], self.tr("banner_exo"))
+        except Exception as e:
+            self.feedback.configure(text=str(e), foreground=self.app.C["err"])
+
+    def executer_code(self):
+        code = self.app.editor.get()
+        self.executer_script(code)
+

@@ -159,6 +159,24 @@ class TestResumeAccueil(unittest.TestCase):
         self.assertEqual(r["faits"], 0)
         self.assertEqual(r["prochaine"], ("termine", None))
 
+    def test_defi_du_jour_selection_deterministe(self):
+        curr = [
+            {"id": "t1", "lessons": [{"id": "l1", "title": "L1"}, {"id": "l2", "title": "L2"}]},
+            {"id": "t2", "lessons": [{"id": "l3", "title": "L3"}]}
+        ]
+        d1 = stats.defi_du_jour(curr, datetime.date(2026, 8, 30))
+        d2 = stats.defi_du_jour(curr, datetime.date(2026, 8, 30))
+        self.assertIsNotNone(d1)
+        self.assertEqual(d1["id"], d2["id"])
+
+    def test_export_anki_tsv(self):
+        gloss = [("mot", "définition")]
+        curr = [{"id": "t1", "lessons": [{"id": "qz", "type": "quiz", "question": "Q ?", "options": ["R1", "R2"], "answer": 0, "explanation": "Exp"}]}]
+        tsv = stats.export_anki_tsv(gloss, curr, lang="fr")
+        self.assertIn("#separator:tab", tsv)
+        self.assertIn("mot\tdéfinition\tpythonlearn::vocabulaire", tsv)
+        self.assertIn("Q ?\tR1<br><small style='color:gray'>Exp</small>\tpythonlearn::t1", tsv)
+
 
 if __name__ == "__main__":
     unittest.main()

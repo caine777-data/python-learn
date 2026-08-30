@@ -7,8 +7,16 @@ débutant au niveau expert**. Chaque leçon mêle une explication claire et
 un exercice que l'on résout dans un éditeur intégré : le code s'exécute
 pour de vrai et la réussite est vérifiée automatiquement.
 
-- ✅ Parcours structuré : **16 parcours, 145 exercices**, du tout débutant aux projets concrets
-- ✅ Éditeur intégré avec **coloration syntaxique**, **numéros de ligne** et **exécution réelle**
+- ✅ Parcours structuré : **23 parcours, 182 leçons, 194 exercices**, du tout débutant aux domaines avancés
+- ✅ Éditeur intégré avec **coloration syntaxique**, **numéros de ligne**, **recherche rapide (Ctrl+F)** et **exécution réelle**
+- ✅ **Palette de commandes** (`Ctrl+P` / `Ctrl+K`) pour naviguer instantanément dans les leçons et actions
+- ✅ **Graphisme interactif Turtle intégré sur Canvas Tkinter** : visualisez en direct les dessins de la tortue
+- ✅ **Explorateur de base de données SQLite interactif** : visualisez les tables et requêtes directement dans une fenêtre dédiée
+- ✅ **Désassembleur de Bytecode Python (`dis`)** : observez les opcodes CPython générés par votre code
+- ✅ **Export de Flashcards Anki (`.tsv`)** : révisez le vocabulaire et les quiz sur votre smartphone
+- ✅ **Défi du jour** sur l'écran d'accueil pour entretenir sa série quotidienne
+- ✅ **Diagnostics d'erreurs intelligents** avec suggestions contextuelles basées sur l'AST
+- ✅ **Export de badge vectoriel SVG** de profil à afficher fièrement sur GitHub
 - ✅ **Syntaxe vérifiée en temps réel** (ligne fautive soulignée), **autocomplétion** (Ctrl+Espace)
 - ✅ **Exécution pas-à-pas** : avance ligne par ligne en voyant les variables et la sortie évoluer
 - ✅ **Export** du code d'un exercice en fichier `.py`
@@ -19,9 +27,11 @@ pour de vrai et la réussite est vérifiée automatiquement.
 - ✅ **Bac à sable** libre (« Brouillon ») pour expérimenter sans exercice
 - ✅ **Indices progressifs** (dévoilés un par un) avant de révéler la solution
 - ✅ **Quiz (QCM) à la fin de chaque parcours** et **projets guidés multi-étapes**
-- ✅ Exercices variés : à compléter (**trous**), à réparer (**débogue ce code**),
-  **prédire la sortie** avant d'exécuter, et **remettre des lignes dans l'ordre**
-- ✅ **3 thèmes** (sombre / clair / contraste élevé) + **zoom** du texte
+- ✅ **8 thèmes soignés** (Sombre, Tokyo Night, Catppuccin, GitHub Dark, Dracula, Nord, Clair, Contraste élevé) + **zoom** du texte
+- ✅ **Ruban de gamification dans l'en-tête** : suivi instantané du Streak 🔥, du Niveau & XP ⚡, des Badges 🏆 et accès au Défi du jour 🎯
+- ✅ **Fil d'Ariane dynamique & Step Dots (`● ● ○`)** pour naviguer confortablement dans les parcours multi-exercices
+- ✅ **Micro-animation de confettis vectoriels** sur Canvas Tkinter pour célébrer les victoires
+- ✅ **Gouttière active** et encadrés stylisés (**Callouts** 💡 Astuce, ⚠️ Attention, 📌 À retenir)
 - ✅ **Glossaire** intégré, **mode révision**, **recherche** de leçon, lien vers la doc Python
 - ✅ **Antisèche imprimable** (mémo de syntaxe HTML) et **flashcards** de révision
 - ✅ **Suivi de progression** (barre + compteurs par parcours) et **badges** par parcours
@@ -33,14 +43,14 @@ pour de vrai et la réussite est vérifiée automatiquement.
 - ✅ **Révision espacée** : les exercices reviennent à intervalles croissants (1, 3, 7, 16… jours)
 - ✅ **Certificat** de fin de parcours (HTML imprimable, à ton nom)
 - ✅ Confort d'édition : auto-fermeture des parenthèses, `Ctrl+/` pour commenter, indentation de bloc
-- ✅ **Application entièrement bilingue FR / EN** (interface et 100 % des leçons traduits, bascule en un clic)
-- ✅ **Écran d'accueil** : série de jours, progression, reprise en un clic,
+- ✅ **Application 100 % bilingue FR / EN** (interface et 182 leçons traduites, bascule en un clic)
+- ✅ **Écran d'accueil** : série de jours, progression, reprise en un clic, défi du jour,
   et **rattrapage ciblé** sur les exercices qui t'ont le plus résisté
 - ✅ **Packs de leçons** : ajoute tes propres exercices avec un simple
   fichier `.json`, sans écrire une ligne de code (idéal en classe)
-- ✅ **Zéro dépendance** pour l'utilisateur (tout est en bibliothèque standard)
+- ✅ **Zéro dépendance** pour l'utilisateur (100 % bibliothèque standard Python)
 - ✅ **Bac à sable sécurisé** : le « Brouillon » limite les modules importables et l'accès fichier/système
-- ✅ **Tests automatisés** : les 145 exercices et 129 tests sont vérifiés par la CI
+- ✅ **Tests automatisés** : 182 leçons, 194 exercices et 146 tests unitaires vérifiés par la CI
   sur 3 systèmes et 2 versions de Python
 - ✅ **Installateurs** Windows (.exe), macOS (.dmg Apple Silicon)
   et Linux (.deb + archive) générés **automatiquement** par GitHub Actions
@@ -110,24 +120,26 @@ parcours est entièrement consacré aux **projets guidés**.
 7. **Python & le web** — HTTP, générer du HTML, lire une API, mini-serveur, Flask/Django + quiz.
 8. **Administrer son PC** — système, variables d'environnement, fichiers, ranger un dossier + quiz.
 9. **Bases de données (SQLite)** — créer une table, INSERT, SELECT, WHERE, UPDATE/DELETE, agrégats + quiz.
-10. **Dessiner (turtle)** — polygones, motifs, spirales, coordonnées, rosace + quiz.
+10. **Dessiner (turtle)** — polygones, motifs, spirales, coordonnées, rosace + quiz interactif sur Canvas Tkinter.
 
-**Approfondissement**
+**Approfondissement & Méthodologie**
 
 11. **Algorithmes & structures de données** — recherche linéaire et dichotomique, tri à bulles, récursivité (factorielle, Fibonacci), pile (LIFO), file (FIFO) + quiz.
 12. **Manipuler des données** — `statistics` (moyenne, médiane), `Counter`, `defaultdict`, lire un CSV, agréger des données + quiz.
 13. **Tests & TDD** — `assert`, lire un test comme une spécification, cas limites, cycle rouge-vert-refactor, écrire ses propres tests + quiz.
-
-**Projets guidés** (multi-étapes, validés exercice par exercice)
-
 14. **Projets guidés** — le **Pendu**, une **liste de tâches**, un **bloc-notes** Tkinter, un **convertisseur de devises**, le **Jeu de la vie** de Conway, et le **hachage sécurisé** d'un mot de passe.
-16. **Décoder les erreurs** — lire un message d'erreur, reconnaître les
-    grands types (`NameError`, `TypeError`, `ValueError`, `IndexError`…),
-    comprendre pourquoi une `SyntaxError` désigne souvent la ligne du dessus,
-    et remonter un traceback à plusieurs niveaux. **Accessible dès la fin du
-    niveau débutant** : c'est la compétence qui débloque le plus vite.
-
 15. **Entraînement** — réparer des bugs classiques (borne, condition inversée, IndexError), compléter du code à trous, **prédire la sortie** d'un programme avant de l'exécuter, et **remettre dans l'ordre** les lignes d'un programme mélangé.
+16. **Décoder les erreurs** — lire un message d'erreur, reconnaître les grands types (`NameError`, `TypeError`, `ValueError`, `IndexError`…), comprendre pourquoi une `SyntaxError` désigne souvent la ligne du dessus, et remonter un traceback à plusieurs niveaux.
+
+**Spécialisations avancées (Nouveautés)**
+
+17. **Cybersécurité & Cryptographie** — hachage `hashlib`, attaques temporelles avec `hmac.compare_digest`, secrets cryptographiques `secrets`, chiffrement XOR, prévention d'injections SQL, blocage de Path Traversal, détection de force brute + quiz.
+18. **Mathématiques, Sciences & Simulations** — crible d'Ératosthène, haute précision `Decimal` / `Fraction`, simulation de Monte-Carlo (calcul de \(\pi\)), géométrie vectorielle & produit scalaire, résolution d'équations par dichotomie, suite de Syracuse + quiz.
+19. **Traitement d'Images & Audio** — codage de pixel RGB, génération d'images PPM en pur Python, formule de luminance ITU-R BT.601, damier 2D, synthèse sonore par échantillonnage sinusoïdal, programmation de mélodie + quiz.
+20. **Intelligence Artificielle (de zéro)** — classifieur des k plus proches voisins (k-NN), régression linéaire par moindres carrés, arbres de décision logiques, neurone artificiel (Perceptron), analyse de sentiment lexicale, moteur de recommandation par similarité cosinus + quiz.
+21. **Réseaux & Protocoles** — adresses IP & validation `ipaddress`, trames JSON délimitées (framing), décodage de requêtes HTTP/1.1 brutes, connectivité socket TCP, détection de réseaux privés RFC 1918, serveur de diffusion de chat + quiz.
+22. **Architecture & Jeux Vidéo 2D** — boucle de jeu & Delta Time, déplacement sur grille 2D et obstacles, gestion d'inventaire avec limite de poids, calcul de dégâts avec coup critique, IA ennemie de poursuite, sauvegarde/chargement de partie en JSON + quiz.
+23. **Design Patterns & Typage Moderne** — Factory pattern, Observateur / Event Emitter, Stratégie, classes abstraites `abc.ABC` & `@abstractmethod`, Duck Typing structurel `typing.Protocol`, énumérations robustes `enum.Enum` + quiz.
 
 ---
 

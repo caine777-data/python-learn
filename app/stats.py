@@ -306,3 +306,62 @@ def badge_svg(streak=0, termines=0, total=133, lang="fr"):
   <text x="180" y="122" text-anchor="middle" font-family="-apple-system, Segoe UI, Roboto, sans-serif" font-size="11" fill="#637777">pythonlearn • 100% standard library</text>
 </svg>"""
 
+
+def defi_du_jour(curriculum, today=None):
+    """Sélectionne de façon déterministe une leçon/exercice pour le défi du jour."""
+    if today is None:
+        today = datetime.date.today()
+
+    items = []
+    for level in curriculum:
+        for lesson in level.get("lessons", []):
+            lid = lesson.get("id")
+            if lid:
+                items.append({
+                    "id": lid,
+                    "title": lesson.get("title", ""),
+                    "title_en": lesson.get("title_en", ""),
+                    "level_id": level.get("id", ""),
+                    "level_title": level.get("title", ""),
+                    "level_title_en": level.get("title_en", ""),
+                    "type": lesson.get("type", "code")
+                })
+    if not items:
+        return None
+
+    jour_num = today.toordinal()
+    idx = (jour_num * 13 + 7) % len(items)
+    return items[idx]
+
+
+def export_anki_tsv(glossaire, curriculum=None, lang="fr"):
+    """Génère un contenu texte tabulé (.tsv) importable dans Anki/Quizlet."""
+    lignes = ["#separator:tab", "#html:true", "#tags column:3"]
+    # 1. Cartes de vocabulaire / glossaire
+    for terme, defn in glossaire:
+        t_clean = terme.replace("\t", " ").replace("\n", "<br>")
+        d_clean = defn.replace("\t", " ").replace("\n", "<br>")
+        tag = "pythonlearn::vocabulaire" if lang == "fr" else "pythonlearn::vocabulary"
+        lignes.append(f"{t_clean}\t{d_clean}\t{tag}")
+
+    # 2. Questions de quiz du curriculum
+    if curriculum:
+        for level in curriculum:
+            tag = f"pythonlearn::{level.get('id', 'quiz')}"
+            for lesson in level.get("lessons", []):
+                if lesson.get("type") == "quiz":
+                    q = lesson.get("question_en" if lang == "en" else "question", "")
+                    options = lesson.get("options_en" if lang == "en" else "options", [])
+                    ans_idx = lesson.get("answer", 0)
+                    exp = lesson.get("explanation_en" if lang == "en" else "explanation", "")
+                    if q and options and 0 <= ans_idx < len(options):
+                        reponse = options[ans_idx]
+                        if exp:
+                            reponse += f"<br><small style='color:gray'>{exp}</small>"
+                        q_clean = q.replace("\t", " ").replace("\n", "<br>")
+                        r_clean = reponse.replace("\t", " ").replace("\n", "<br>")
+                        lignes.append(f"{q_clean}\t{r_clean}\t{tag}")
+
+    return "\n".join(lignes) + "\n"
+
+

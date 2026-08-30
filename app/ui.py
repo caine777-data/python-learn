@@ -15,13 +15,15 @@ from app.editor import CodeEditor
 from app.i18n import LANGUES, Translator
 from app.theme import THEME_ORDER, THEMES, assombrir, eclaircir
 from app.version import APP_NAME, AUTEUR, DEPOT, __version__
-from app.vues_exercices import VueOrdre, VuePrediction
+from app.vues_exercices import VueOrdre, VuePrediction, VueTurtle
 from app.windows import (
     AccueilWindow,
+    BytecodeWindow,
     Celebration,
     ExamWindow,
     FlashcardWindow,
     PaletteWindow,
+    SqliteViewerWindow,
     StepWindow,
 )
 from content import (
@@ -70,6 +72,13 @@ LEVEL_BADGE_NAMES = {
     "algos": "Algorithmes", "donnees": "Manipuler des données",
     "tests_tdd": "Tests & TDD", "erreurs": "Décoder les erreurs",
     "projets": "Projets guidés", "entrainement": "Entraînement",
+    "cybersecurite": "Cybersécurité & Cryptographie",
+    "maths_sciences": "Mathématiques & Sciences",
+    "multimedia": "Traitement d'Images & Audio",
+    "ia_ml": "Intelligence Artificielle",
+    "reseaux": "Réseaux & Protocoles",
+    "jeux_video": "Jeux Vidéo 2D",
+    "design_patterns": "Design Patterns",
 }
 
 
@@ -273,9 +282,11 @@ class PythonLearnApp:
         self.btn_plus = ttk.Button(toolbar, text="⋯", width=3,
                                    command=self._menu_barre)
         toolbar.bind("<Configure>", self._barre_redimensionnee)
+        self._build_header_stats()
 
         outer = ttk.PanedWindow(self.root, orient=tk.HORIZONTAL)
-        outer.pack(fill=tk.BOTH, expand=True, padx=8, pady=(6, 0))
+        self.outer_paned = outer
+        outer.pack(fill=tk.BOTH, expand=True, padx=8, pady=(4, 0))
 
         # --- barre latérale ---
         side = ttk.Frame(outer, style="Panel.TFrame", width=340)
@@ -344,6 +355,7 @@ class PythonLearnApp:
         # Vues des exercices qui ne s'écrivent pas dans l'éditeur.
         self.vue_predire = VuePrediction(self.bottom, self)
         self.vue_ordre = VueOrdre(self.bottom, self)
+        self.vue_turtle = VueTurtle(self.bottom, self)
 
         # barre d'état
         status = ttk.Frame(self.root, style="Panel.TFrame")
@@ -366,6 +378,140 @@ class PythonLearnApp:
         self.root.bind("<Control-minus>", lambda e: self._zoom(-1))
         self.root.bind("<Control-KP_Subtract>", lambda e: self._zoom(-1))
         self.root.bind("<Control-0>", lambda e: self._zoom(0))
+
+    def _build_header_stats(self):
+        """Ruban moderne de gamification & profil en dessous de la barre d'outils."""
+        C = self.C
+        self.header_strip = tk.Frame(self.root, bg=C["panel"], padx=10, pady=3)
+        self.header_strip.pack(fill=tk.X, side=tk.TOP, padx=8, pady=(4, 0))
+
+        left = tk.Frame(self.header_strip, bg=C["panel"])
+        left.pack(side=tk.LEFT)
+
+        self.hdr_streak_lbl = tk.Label(left, text="🔥 0 j", font=(self.body.cget("family"), 9, "bold"),
+                                       bg=C["editor"], fg=C["accent"],
+                                       padx=8, pady=2, relief="flat")
+        self.hdr_streak_lbl.pack(side=tk.LEFT, padx=(0, 6))
+
+        self.hdr_xp_lbl = tk.Label(left, text="⚡ Niv. 1 · 0 XP", font=(self.body.cget("family"), 9, "bold"),
+                                   bg=C["editor"], fg=C["ok"],
+                                   padx=8, pady=2, relief="flat")
+        self.hdr_xp_lbl.pack(side=tk.LEFT, padx=(0, 6))
+
+        self.hdr_badges_lbl = tk.Label(left, text="🏆 0/23", font=(self.body.cget("family"), 9),
+                                       bg=C["editor"], fg=C["code"],
+                                       padx=8, pady=2, relief="flat")
+        self.hdr_badges_lbl.pack(side=tk.LEFT, padx=(0, 6))
+
+        right = tk.Frame(self.header_strip, bg=C["panel"])
+        right.pack(side=tk.RIGHT)
+
+        self.hdr_defi_btn = tk.Button(right, text=self.tr("hdr_defi"), font=(self.body.cget("family"), 9, "bold"),
+                                      bg=C["accent"], fg=C["sel_fg"], relief="flat",
+                                      padx=10, pady=2, cursor="hand2", command=self._lancer_defi_du_jour)
+        self.hdr_defi_btn.pack(side=tk.RIGHT, padx=(6, 0))
+
+        self.hdr_breadcrumbs_lbl = tk.Label(right, text="", font=(self.body.cget("family"), 9),
+                                            bg=C["panel"], fg=C["muted"])
+        self.hdr_breadcrumbs_lbl.pack(side=tk.RIGHT, padx=4)
+
+    def _lancer_defi_du_jour(self):
+        defi = stats.defi_du_jour(CURRICULUM, date.today())
+        if defi:
+            self._charger_item(defi["id"])
+
+    def _maj_breadcrumbs(self):
+        if not hasattr(self, "hdr_breadcrumbs_lbl"):
+            return
+        if not self.current:
+            self.hdr_breadcrumbs_lbl.configure(text="")
+            return
+        parcours_titre = ""
+        for level in CURRICULUM:
+            if any(l["id"] == self.current["id"] for l in level["lessons"]):
+                parcours_titre = self.txt(level, "title")
+                break
+        lecon_titre = self.txt(self.current, "title")
+        n_exo = exercice_count(self.current)
+        if n_exo > 1:
+            exo_txt = f" › ⚡ {self.exo_index + 1}/{n_exo}"
+        else:
+            exo_txt = ""
+        self.hdr_breadcrumbs_lbl.configure(
+            text=f"📁 {parcours_titre} › 📄 {lecon_titre}{exo_txt}"
+        )
+
+    def _refresh_header_stats(self):
+        if not hasattr(self, "hdr_streak_lbl"):
+            return
+        C = self.C
+        today = date.today()
+        s = stats.streak(self.data["historique"], today)
+        xp = stats.xp_total(self.data["completed"], self.data["badges"])
+        niv_info = stats.niveau(xp)
+        nb_badges = len(self.data["badges"])
+        total_parcours = len(CURRICULUM)
+
+        self.hdr_streak_lbl.configure(
+            text=self.tr("hdr_streak", n=s),
+            bg=C["editor"], fg=C["accent"]
+        )
+        self.hdr_xp_lbl.configure(
+            text=self.tr("hdr_xp", niv=niv_info["niveau"], xp=xp),
+            bg=C["editor"], fg=C["ok"]
+        )
+        self.hdr_badges_lbl.configure(
+            text=self.tr("hdr_badges", n=nb_badges, total=total_parcours),
+            bg=C["editor"], fg=C["code"]
+        )
+        self.hdr_defi_btn.configure(
+            text=self.tr("hdr_defi"),
+            bg=C["accent"], fg=C["sel_fg"], activebackground=assombrir(C["accent"], 0.2)
+        )
+        self.header_strip.configure(bg=C["panel"])
+        self.hdr_breadcrumbs_lbl.configure(bg=C["panel"], fg=C["muted"])
+        self._maj_breadcrumbs()
+
+    def _animer_confettis(self):
+        """Anime une cascade de confettis vectoriels sur l'interface lors d'une réussite."""
+        try:
+            cv = tk.Canvas(self.root, bg=self.C["panel"], highlightthickness=0)
+            cv.place(relx=0, rely=0, relwidth=1, relheight=1)
+            couleurs = [self.C["accent"], self.C["ok"], self.C["code"], self.C["heading"],
+                        "#ff5555", "#50fa7b", "#ffb86c", "#8be9fd", "#bd93f9"]
+            particules = []
+            w = self.root.winfo_width() or 800
+            h = self.root.winfo_height() or 600
+            for _ in range(45):
+                px = random.randint(20, max(40, w - 20))
+                py = random.randint(-80, 20)
+                vx = random.uniform(-1.5, 1.5)
+                vy = random.uniform(3.5, 7.5)
+                taille = random.randint(6, 11)
+                c = random.choice(couleurs)
+                pid = cv.create_rectangle(px, py, px + taille, py + taille, fill=c, outline="")
+                particules.append({"id": pid, "x": px, "y": py, "vx": vx, "vy": vy, "w": taille})
+
+            def step(frame=0):
+                if frame > 45 or not cv.winfo_exists():
+                    try:
+                        cv.destroy()
+                    except Exception:
+                        pass
+                    return
+                for p in particules:
+                    p["x"] += p["vx"]
+                    p["y"] += p["vy"]
+                    p["vy"] += 0.15
+                    try:
+                        cv.coords(p["id"], p["x"], p["y"], p["x"] + p["w"], p["y"] + p["w"])
+                    except Exception:
+                        pass
+                self.root.after(25, lambda: step(frame + 1))
+
+            step(0)
+        except Exception:
+            pass
 
     def _barre_redimensionnee(self, event):
         """Ne recalcule que si la largeur a réellement changé.
@@ -518,7 +664,8 @@ class PythonLearnApp:
         self._tbtn(btns, "btn_hint", self.show_hint).pack(side=tk.LEFT, padx=6)
         self._tbtn(btns, "btn_solution", self.show_solution).pack(side=tk.LEFT)
         self._tbtn(btns, "btn_export", self._exporter_py).pack(side=tk.LEFT, padx=6)
-        self._tbtn(btns, "btn_note", self._editer_note).pack(side=tk.LEFT)
+        self._tbtn(btns, "tb_bytecode", self._ouvrir_bytecode).pack(side=tk.LEFT)
+        self._tbtn(btns, "btn_note", self._editer_note).pack(side=tk.LEFT, padx=6)
         self.fav_btn = ttk.Button(btns, text=self.tr("fav_non"), width=3,
                                   command=self._toggle_favori)
         self.fav_btn.pack(side=tk.LEFT, padx=6)
@@ -620,10 +767,12 @@ class PythonLearnApp:
 
         self.vue_predire.appliquer_theme(C)
         self.vue_ordre.appliquer_theme(C)
+        self.vue_turtle.appliquer_theme(C)
 
         label = self.C["label_en"] if self.lang == "en" else self.C["label"]
         self.theme_btn.configure(text=self.tr("tb_theme", label=label))
         self._refresh_badges()
+        self._refresh_header_stats()
 
     def cycle_langue(self):
         i = (LANGUES.index(self.lang) + 1) % len(LANGUES)
@@ -644,8 +793,10 @@ class PythonLearnApp:
         label = self.C["label_en"] if self.lang == "en" else self.C["label"]
         self.theme_btn.configure(text=self.tr("tb_theme", label=label))
         self._refresh_status()
+        self._refresh_header_stats()
         self.vue_predire.traduire()
         self.vue_ordre.traduire()
+        self.vue_turtle.traduire()
         self._retraduire_lecon()
         self._ajuster_barre()      # les libellés changent de longueur
         if self.current and self.current.get("type") not in ("quiz", "predire", "ordre"):
@@ -714,6 +865,12 @@ class PythonLearnApp:
         self.content.tag_configure("inline", foreground=C["code"], font=self.code_font)
         self.content.tag_configure("bullet", foreground=C["fg"], lmargin1=16, lmargin2=30)
         self.content.tag_configure("bold", font=(self.body.cget("family"), 11, "bold"))
+        self.content.tag_configure("tip_title", foreground=C["accent"], font=(self.body.cget("family"), 10, "bold"), spacing1=8, lmargin1=12, lmargin2=12)
+        self.content.tag_configure("tip_body", foreground=C["fg"], lmargin1=16, lmargin2=16, spacing3=4, font=self.body)
+        self.content.tag_configure("warn_title", foreground=C["err"], font=(self.body.cget("family"), 10, "bold"), spacing1=8, lmargin1=12, lmargin2=12)
+        self.content.tag_configure("warn_body", foreground=C["fg"], lmargin1=16, lmargin2=16, spacing3=4, font=self.body)
+        self.content.tag_configure("note_title", foreground=C["ok"], font=(self.body.cget("family"), 10, "bold"), spacing1=8, lmargin1=12, lmargin2=12)
+        self.content.tag_configure("note_body", foreground=C["fg"], lmargin1=16, lmargin2=16, spacing3=4, font=self.body)
 
     # ---------------------------------------------------------------- arbre
     def _on_search(self, _e):
@@ -846,10 +1003,14 @@ class PythonLearnApp:
         elif type_lecon == "ordre":
             self.vue_ordre.afficher()
             self.vue_ordre.charger(lesson)
+        elif type_lecon == "turtle":
+            self.vue_turtle.afficher()
+            self.vue_turtle.charger(lesson)
         else:
             self.exo_frame.pack(fill=tk.BOTH, expand=True)
             self._build_exo_tabs()
             self._load_exercice(0)
+        self._maj_breadcrumbs()
 
     def _masquer_cadres(self):
         """Retire de l'affichage toutes les vues, avant d'en montrer une."""
@@ -857,6 +1018,7 @@ class PythonLearnApp:
         self.quiz_frame.pack_forget()
         self.vue_predire.masquer()
         self.vue_ordre.masquer()
+        self.vue_turtle.masquer()
 
     def _maj_favori_btn(self):
         if not self.current:
@@ -933,10 +1095,12 @@ class PythonLearnApp:
         items = lesson_items(self.current)
         for i in range(n):
             done = items[i] in self.data["completed"]
-            txt = f"{'✓ ' if done else ''}Exercice {i + 1}"
-            b = ttk.Button(self.exo_tabs, text=txt,
+            pastille = "●" if done else ("◆" if i == self.exo_index else "○")
+            lbl_text = f"{pastille} {self.tr('crumb_exo')} {i + 1}"
+            style_name = "Primary.TButton" if i == self.exo_index else "TButton"
+            b = ttk.Button(self.exo_tabs, text=lbl_text, style=style_name,
                            command=lambda idx=i: self._load_exercice(idx))
-            b.pack(side=tk.LEFT, padx=(0, 4))
+            b.pack(side=tk.LEFT, padx=(0, 6))
             self.tab_buttons.append(b)
 
     def _load_exercice(self, index):
@@ -962,8 +1126,8 @@ class PythonLearnApp:
         self.feedback.configure(text="")
         self._clear_console()
         self._hide_banner()
-        for i, b in enumerate(self.tab_buttons):
-            b.state(["pressed"] if i == index else ["!pressed"])
+        self._build_exo_tabs()
+        self._maj_breadcrumbs()
 
     def _load_quiz(self, lesson):
         self.quiz_var.set(-1)
@@ -983,13 +1147,32 @@ class PythonLearnApp:
         self.content.delete("1.0", tk.END)
         in_code = False
         for line in text.splitlines():
-            if line.strip() == "```":
+            sline = line.strip()
+            if sline == "```" or sline.startswith("```"):
                 in_code = not in_code
                 continue
             if in_code:
                 self.content.insert(tk.END, line + "\n", "code")
             elif line.startswith("## "):
                 self.content.insert(tk.END, line[3:] + "\n", "h2")
+            elif line.startswith("> [!TIP]") or line.startswith("💡 ") or line.startswith("💡"):
+                titre = self.tr("callout_tip")
+                corps = line.replace("> [!TIP]", "").replace("💡", "").strip()
+                self.content.insert(tk.END, f"{titre}\n", "tip_title")
+                if corps:
+                    self._insert_inline(corps + "\n", "tip_body")
+            elif line.startswith("> [!WARNING]") or line.startswith("⚠️ ") or line.startswith("⚠️"):
+                titre = self.tr("callout_warn")
+                corps = line.replace("> [!WARNING]", "").replace("⚠️", "").strip()
+                self.content.insert(tk.END, f"{titre}\n", "warn_title")
+                if corps:
+                    self._insert_inline(corps + "\n", "warn_body")
+            elif line.startswith("> [!NOTE]") or line.startswith("📌 ") or line.startswith("📌"):
+                titre = self.tr("callout_note")
+                corps = line.replace("> [!NOTE]", "").replace("📌", "").strip()
+                self.content.insert(tk.END, f"{titre}\n", "note_title")
+                if corps:
+                    self._insert_inline(corps + "\n", "note_body")
             elif line.startswith("- "):
                 self.content.insert(tk.END, "•  ", "bullet")
                 self._insert_inline(line[2:] + "\n", "bullet")
@@ -1221,6 +1404,7 @@ class PythonLearnApp:
                 prog.enregistrer_activite(self.data, date.today().isoformat())
                 self._refresh_status()
             self._show_banner(self.tr("banner_quiz"), self.C["ok"])
+            self._animer_confettis()
         else:
             self.quiz_feedback.configure(text=self.tr("quiz_bad"),
                                          foreground=self.C["err"])
@@ -1316,6 +1500,30 @@ class PythonLearnApp:
         except Exception:
             messagebox.showinfo(self.tr("dlg_export_title"), self.tr("dlg_export_fail"))
 
+    def _ouvrir_bytecode(self):
+        code = self.editor.get()
+        BytecodeWindow(self.root, self, code, self.C)
+
+    def _ouvrir_sqlite(self):
+        code = self.editor.get()
+        SqliteViewerWindow(self.root, self, code, self.C)
+
+    def _exporter_anki_tsv(self):
+        tsv = stats.export_anki_tsv(get_glossaire(self.lang), CURRICULUM, lang=self.lang)
+        chemin = filedialog.asksaveasfilename(
+            parent=self.root,
+            title=self.tr("dlg_anki_title"),
+            defaultextension=".tsv",
+            filetypes=[("TSV (Anki)", "*.tsv"), ("All files", "*.*")],
+            initialfile="pythonlearn_anki.tsv"
+        )
+        if chemin:
+            try:
+                pathlib.Path(chemin).write_text(tsv, encoding="utf-8")
+                messagebox.showinfo(self.tr("dlg_anki_title"), self.tr("dlg_anki_ok"))
+            except Exception as e:
+                messagebox.showerror(self.tr("dlg_export_title"), str(e))
+
     def _pas_a_pas(self):
         if not self.current or self.current.get("type") in _SANS_EDITEUR:
             return
@@ -1357,6 +1565,7 @@ class PythonLearnApp:
                     msg = f"Parcours « {nom} » terminé ! Badge {nb}/{len(CURRICULUM)}."
                 Celebration(self.root, msg, self.C,
                             on_cert=lambda lid=level["id"]: self._generer_certificat(lid))
+                self._animer_confettis()
 
     def _refresh_status(self):
         done = len(self.data["completed"])
@@ -1379,6 +1588,7 @@ class PythonLearnApp:
         self.status.configure(text=self.tr(
             "status", niv=niv, done=done, total=total, pct=pct,
             b=len(self.data["badges"]), n=len(CURRICULUM), s=s, cible=cible, dus=n_dus))
+        self._refresh_header_stats()
 
     def _reset_progress(self):
         if messagebox.askyesno(self.tr("dlg_reset_title"), self.tr("dlg_reset_msg")):
@@ -1666,6 +1876,8 @@ class PythonLearnApp:
                    command=lambda: self._importer_progression(win)).pack(side=tk.LEFT, padx=4)
         ttk.Button(iorow, text=self.tr("tb_badge"),
                    command=self._exporter_badge_svg).pack(side=tk.LEFT, padx=4)
+        ttk.Button(iorow, text=self.tr("tb_anki"),
+                   command=self._exporter_anki_tsv).pack(side=tk.LEFT, padx=4)
 
         tk.Label(win, text=self.tr("st_7days"), bg=C["bg"], fg=C["muted"]).pack(pady=(8, 0))
         cv = tk.Canvas(win, width=470, height=150, bg=C["panel"], highlightthickness=0)

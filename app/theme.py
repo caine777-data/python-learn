@@ -61,8 +61,38 @@ THEMES = {
         "kw": "#81a1c1", "builtin": "#88c0d0", "num": "#b48ead",
         "deff": "#8fbcbb", "str": "#a3be8c", "com": "#616e88",
     },
+    "tokyo_night": {
+        "label": "tokyo night", "label_en": "tokyo night",
+        "bg": "#1a1b26", "panel": "#1f2335", "editor": "#16161e",
+        "console": "#13141c", "fg": "#c0caf5", "accent": "#7aa2f7",
+        "ok": "#9ece6a", "err": "#f7768e", "muted": "#565f89",
+        "heading": "#bb9af7", "code": "#e0af68", "code_bg": "#16161e",
+        "sel_fg": "#ffffff", "curline": "#292e42",
+        "kw": "#bb9af7", "builtin": "#7dcfff", "num": "#ff9e64",
+        "deff": "#7aa2f7", "str": "#9ece6a", "com": "#565f89",
+    },
+    "catppuccin": {
+        "label": "catppuccin", "label_en": "catppuccin",
+        "bg": "#24273a", "panel": "#1e2030", "editor": "#181926",
+        "console": "#141520", "fg": "#cad3f5", "accent": "#c6a0f6",
+        "ok": "#a6da95", "err": "#ed8796", "muted": "#8087a2",
+        "heading": "#f5bde6", "code": "#eed49f", "code_bg": "#181926",
+        "sel_fg": "#ffffff", "curline": "#363a4f",
+        "kw": "#c6a0f6", "builtin": "#8aadf4", "num": "#f5a97f",
+        "deff": "#8bd5ca", "str": "#a6da95", "com": "#6e738d",
+    },
+    "github_dark": {
+        "label": "github dark", "label_en": "github dark",
+        "bg": "#0d1117", "panel": "#161b22", "editor": "#090d13",
+        "console": "#05080c", "fg": "#c9d1d9", "accent": "#58a6ff",
+        "ok": "#3fb950", "err": "#f85149", "muted": "#8b949e",
+        "heading": "#79c0ff", "code": "#d29922", "code_bg": "#090d13",
+        "sel_fg": "#ffffff", "curline": "#1f242c",
+        "kw": "#ff7b72", "builtin": "#ffa657", "num": "#79c0ff",
+        "deff": "#d2a8ff", "str": "#a5d6ff", "com": "#8b949e",
+    },
 }
-THEME_ORDER = ["dark", "light", "dracula", "nord", "contrast"]
+THEME_ORDER = ["dark", "tokyo_night", "catppuccin", "github_dark", "dracula", "nord", "light", "contrast"]
 
 
 def melange(hex1, hex2, t):

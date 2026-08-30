@@ -3642,6 +3642,946 @@ A function must also be defined before it is called.""",
                 "where the call came from."
             ),
         },
+        # ------------------------------------------ Track 17: Cybersecurity
+        "cybersecurite": {"title": "17 · Cybersecurity & Cryptography"},
+        "sec-01": {
+            "title": "Hashing and constant-time comparison",
+            "content": """## Hashing with hashlib
+
+A cryptographic hash function converts any data into a fixed-size digital footprint
+(e.g., SHA-256 generates 64 hexadecimal characters). It is one-way: reversing the hash
+to find the original password is computationally impossible.
+
+```python
+import hashlib
+import hmac
+
+h = hashlib.sha256(b"my_password").hexdigest()
+```
+
+## Timing attacks
+
+Comparing two strings with `==` stops at the first mismatch: an attacker can
+measure response times to guess passwords character by character! To prevent this,
+we use `hmac.compare_digest()` which always takes **constant time**.
+
+## Your turn
+
+Write `verifier_signature(cle_attendue, cle_recue)` which compares two strings
+using `hmac.compare_digest` and returns a boolean.""",
+            "hints": [
+                "Use hmac.compare_digest(cle_attendue, cle_recue).",
+                "Make sure both arguments are of the same type (str or bytes)."
+            ],
+        },
+        "sec-02": {
+            "title": "Generating true cryptographic secrets",
+            "content": """## The pitfall of the random module
+
+The standard `random` module uses a pseudo-random generator (Mersenne Twister)
+meant for simulations, not security. By observing a few outputs, an attacker can
+predict future numbers!
+
+For session tokens, API keys, and password resets, Python provides the `secrets` module:
+
+```python
+import secrets
+
+token = secrets.token_hex(16)        # 32 hex characters (16 bytes)
+url_safe = secrets.token_urlsafe(16) # safe for URLs
+secure_num = secrets.randbelow(100)  # integer from 0 to 99
+```
+
+## Your turn
+
+Write `generer_jetons(n, nb_octets=16)` that returns a list of `n` unique hex
+tokens generated with `secrets.token_hex(nb_octets)`.""",
+            "hints": [
+                "Use a list comprehension or loop.",
+                "[secrets.token_hex(nb_octets) for _ in range(n)]"
+            ],
+        },
+        "sec-03": {
+            "title": "Symmetric XOR encryption",
+            "content": """## The XOR (exclusive OR) operator
+
+At the core of symmetric encryption lies the binary XOR operator (`^`).
+Its key property: `(A ^ B) ^ B == A`. Encrypting a byte with a key and then
+re-applying the same key restores the original message!
+
+In Python, byte sequences are manipulated using `bytes` or `bytearray`:
+
+```python
+text = b"Hello"
+mask = 42
+encrypted = bytes([byte ^ mask for byte in text])
+decrypted = bytes([byte ^ mask for byte in encrypted]) # b"Hello"
+```
+
+## Your turn
+
+Write `chiffrer_xor(donnees: bytes, masque: int) -> bytes` which applies the
+XOR mask `masque` to every byte in `donnees` and returns the resulting `bytes`.""",
+            "hints": [
+                "Transform each byte b with b ^ masque.",
+                "Pass the generator or list to bytes(...)."
+            ],
+        },
+        "sec-04": {
+            "title": "Preventing SQL injections",
+            "content": """## Never concatenate into SQL queries!
+
+A SQL injection occurs when unsanitized user input is directly concatenated into a SQL string:
+
+```python
+# DANGEROUS: a login like 'admin -- bypasses password verification!
+cursor.execute(f"SELECT * FROM users WHERE username = '{login}'")
+```
+
+The gold standard is using **parameterized queries** with `?`. The database engine
+treats parameters purely as literal values, never as executable code.
+
+```python
+cursor.execute("SELECT * FROM users WHERE username = ?", (login,))
+```
+
+## Your turn
+
+Write `preparer_insertion_utilisateur(nom, email, role)` that returns a tuple
+`(requete_sql, parametres)` where:
+- `requete_sql` is `'INSERT INTO users (nom, email, role) VALUES (?, ?, ?)'`
+- `parametres` is the tuple `(nom, email, role)`.""",
+            "hints": [
+                "Use ? placeholders for substitution values.",
+                "Return (sql, (nom, email, role))."
+            ],
+        },
+        "sec-05": {
+            "title": "Blocking Path Traversal attacks",
+            "content": """## What is Path Traversal?
+
+If your application allows downloading files based on a user-provided name, an attacker
+could supply `../../../../etc/passwd` or `..\\..\\Windows\\win.ini` to escape the directory.
+
+With `pathlib`, resolve absolute paths with `.resolve()` and verify that the target
+stays inside the authorized directory using `.is_relative_to()` (or `.relative_to()`):
+
+```python
+from pathlib import Path
+
+base = Path("/var/www/uploads").resolve()
+target = (base / filename).resolve()
+
+if not target.is_relative_to(base):
+    raise PermissionError("Access forbidden!")
+```
+
+## Your turn
+
+Write `est_chemin_sur(dossier_racine, chemin_demande)` which returns `True` if
+the resolved target path is strictly inside `dossier_racine`, and `False` otherwise.""",
+            "hints": [
+                "Use Path(dossier_racine).resolve() and (base / chemin_demande).resolve().",
+                "Check cible.relative_to(base) inside a try/except ValueError block."
+            ],
+        },
+        "sec-06": {
+            "title": "Brute-force attack detection",
+            "content": """## Analyzing authentication logs
+
+A brute force attack tests thousands of passwords sequentially. To detect it,
+we inspect authentication logs and flag IP addresses with excessive consecutive failures.
+
+Given logs like:
+`[{"ip": "192.168.1.10", "succes": False}, {"ip": "192.168.1.10", "succes": True}]`
+
+## Your turn
+
+Write `detecter_bruteforce(logs, seuil_echecs=3)` which returns a set of IP
+addresses that have accumulated at least `seuil_echecs` failures (`"succes": False`).""",
+            "hints": [
+                "Count failed logins per IP.",
+                "Filter IPs whose fail count reaches or exceeds seuil_echecs."
+            ],
+        },
+        "qz-sec": {
+            "title": "Quiz: Cybersecurity recap",
+            "content": "## Security principles",
+            "question": "Why should you use `secrets` instead of `random` for security tokens?",
+            "options": [
+                "secrets is faster in computation time.",
+                "random is predictable (pseudo-random) and not cryptographically secure.",
+                "random can only generate integers and not text.",
+                "secrets automatically encrypts variables in RAM.",
+            ],
+            "explanation": (
+                "The random module uses the Mersenne Twister which is deterministic. "
+                "The secrets module pulls cryptographically secure entropy from the OS."
+            ),
+        },
+        # ------------------------------------------ Track 18: Math & Science
+        "maths_sciences": {"title": "18 · Mathematics, Science & Simulation"},
+        "mat-01": {
+            "title": "Prime numbers & Sieve of Eratosthenes",
+            "content": """## The Sieve of Eratosthenes
+
+A prime number is an integer greater than 1 divisible only by 1 and itself.
+To find all primes up to `n`, the Sieve of Eratosthenes systematically eliminates
+multiples of each newly discovered prime:
+
+```python
+def primes(n):
+    is_prime = [True] * (n + 1)
+    is_prime[0] = is_prime[1] = False
+    for p in range(2, int(n**0.5) + 1):
+        if is_prime[p]:
+            for multiple in range(p * p, n + 1, p):
+                is_prime[multiple] = False
+    return [i for i, p in enumerate(is_prime) if p]
+```
+
+## Your turn
+
+Write `premiers_jusqua(n)` which returns an ordered list of all prime numbers
+less than or equal to `n`.""",
+            "hints": [
+                "Create a boolean list of size n + 1 initialized to True.",
+                "Set indices 0 and 1 to False, then cross off multiples."
+            ],
+        },
+        "mat-02": {
+            "title": "Exact precision with Decimal and Fraction",
+            "content": """## The floating-point precision issue
+
+In binary computing, simple decimals cannot always be represented exactly
+(e.g., `0.1 + 0.2` produces `0.30000000000000004`).
+
+For financial and scientific precision, Python includes `decimal` and `fractions`:
+
+```python
+from decimal import Decimal
+from fractions import Fraction
+
+# Exact currency precision (always pass numbers as strings!)
+price = Decimal("0.1") + Decimal("0.2") # Decimal('0.3')
+
+# Exact fractions without rounding error
+f = Fraction(1, 3) + Fraction(1, 6)    # Fraction(1, 2)
+```
+
+## Your turn
+
+Write `calculer_total_facture(prix_lignes: list[str], taux_tva: str) -> Decimal`
+which sums the prices as `Decimal` instances, applies the VAT tax rate (e.g. `"0.20"`),
+and returns the total as a `Decimal`.""",
+            "hints": [
+                "Convert each string price with Decimal(p).",
+                "Total = HT * (1 + VAT)."
+            ],
+        },
+        "mat-03": {
+            "title": "Monte-Carlo Simulation (Estimating Pi)",
+            "content": r"""## Estimating Pi with randomness
+
+Imagine a quarter circle of radius 1 inscribed inside a 1x1 square.
+The area of the square is 1, and the quarter circle area is \(\pi / 4\).
+
+By generating \(N\) random points \((x, y)\) inside the square, the proportion of
+points falling inside the circle (\(x^2 + y^2 \le 1\)) approximates \(\pi / 4\):
+\[ \pi \approx 4 \times \frac{\text{points in circle}}{\text{total points}} \]
+
+## Your turn
+
+Write `estimer_pi(points: list[tuple[float, float]]) -> float` that counts points
+satisfying \(x^2 + y^2 \le 1.0\) and returns \(4 \times \frac{\text{in}}{\text{total}}\).
+Return `0.0` if points is empty.""",
+            "hints": [
+                "Check x*x + y*y <= 1.0 for each (x, y) point.",
+                "Return 4.0 * in_count / len(points)."
+            ],
+        },
+        "mat-04": {
+            "title": "Vector math & Dot product",
+            "content": r"""## Vectors in geometry and physics
+
+A vector \(\vec{u} = (x_1, y_1)\) and a vector \(\vec{v} = (x_2, y_2)\) have the dot product:
+\[ \vec{u} \cdot \vec{v} = x_1 x_2 + y_1 y_2 \]
+
+Two non-zero vectors are **orthogonal** (perpendicular) if and only if their
+dot product is zero (\(\vec{u} \cdot \vec{v} = 0\)).
+
+## Your turn
+
+Write two functions:
+1. `produit_scalaire(u, v) -> float`: calculates \(\sum u_i v_i\).
+2. `sont_orthogonaux(u, v) -> bool`: returns `True` if the dot product is approximately zero (tolerance `1e-9`).""",
+            "hints": [
+                "Use zip(u, v) to pair components.",
+                "sum(a * b for a, b in zip(u, v))"
+            ],
+        },
+        "mat-05": {
+            "title": "Root finding by Bisection (Dichotomy)",
+            "content": r"""## Finding the root of f(x) = 0
+
+If a continuous function \(f\) changes sign across an interval \([a, b]\)
+(\(f(a) \times f(b) \le 0\)), the Intermediate Value Theorem guarantees at least
+one root \(c\) where \(f(c) = 0\).
+
+The bisection method bisects the interval at \(m = (a + b) / 2\) at each step
+until reaching the desired tolerance.
+
+## Your turn
+
+Write `resoudre_dichotomie(f, a, b, precision=1e-5)` which returns an approximate
+root \(x\) where \(f(x) \approx 0\).""",
+            "hints": [
+                "While (b - a) > precision, compute midpoint m = (a + b) / 2.",
+                "If f(a) * f(m) <= 0 then b = m, else a = m."
+            ],
+        },
+        "mat-06": {
+            "title": "Collatz Conjecture (3n + 1)",
+            "content": r"""## The Syracuse sequence
+
+For any positive integer \(n\):
+- If even, divide by 2 (\(n / 2\)).
+- If odd, multiply by 3 and add 1 (\(3n + 1\)).
+
+The conjecture states that repeating this process always reaches 1.
+
+Example for 6: 6 → 3 → 10 → 5 → 16 → 8 → 4 → 2 → 1.
+
+## Your turn
+
+Write `vol_syracuse(n: int) -> list[int]` that returns the full sequence of
+numbers visited starting from `n` down to 1 inclusive.""",
+            "hints": [
+                "Start with [n].",
+                "In a while n > 1 loop, append the next value."
+            ],
+        },
+        "qz-mat": {
+            "title": "Quiz: Mathematics recap",
+            "content": "## Floating point and precision",
+            "question": "What is the reason behind `0.1 + 0.2 != 0.3` in standard Python floats?",
+            "options": [
+                "A known bug in the CPython interpreter.",
+                "The impossibility of representing certain decimal fractions in finite binary format (IEEE 754).",
+                "Python always rounding down by default.",
+                "RAM hardware memory limitations.",
+            ],
+            "explanation": (
+                "Binary computers represent floating point numbers in base 2. "
+                "Just like 1/3 has no finite decimal representation in base 10 (0.333...), "
+                "1/10 has no finite binary representation in base 2."
+            ),
+        },
+        # ------------------------------------------ Track 19: Multimedia
+        "multimedia": {"title": "19 · Image & Audio Processing"},
+        "med-01": {
+            "title": "Structure of an RGB pixel",
+            "content": """## How digital color works
+
+On a screen, every pixel combines three color channels:
+- **R**: Red (0 to 255)
+- **G**: Green (0 to 255)
+- **B**: Blue (0 to 255)
+
+Examples:
+- `(255, 0, 0)` = Pure Red
+- `(255, 255, 255)` = White
+- `(0, 0, 0)` = Black
+
+To **invert** a color (photo negative effect), subtract each channel from 255:
+`255 - r`, `255 - g`, `255 - b`.
+
+## Your turn
+
+Write `inverser_pixel(r: int, g: int, b: int) -> tuple[int, int, int]` which
+returns the inverted negative color tuple.""",
+            "hints": [
+                "Compute 255 - r, 255 - g, 255 - b.",
+                "Return (255 - r, 255 - g, 255 - b)."
+            ],
+        },
+        "med-02": {
+            "title": "Generating images in pure Python (PPM Format)",
+            "content": """## The Netpbm PPM (P3) format
+
+You can create real image files without installing any external library like Pillow.
+The standard **PPM (Portable Pixmap)** format is plain ASCII text!
+
+Structure:
+```text
+P3
+# width height
+2 2
+# max color value
+255
+# R G B triplets
+255 0 0    0 255 0
+0 0 255    255 255 0
+```
+
+## Your turn
+
+Write `generer_ppm_uni(largeur: int, hauteur: int, couleur: tuple[int, int, int]) -> str`
+that creates and returns the full PPM text for a solid single-color image.""",
+            "hints": [
+                "Start with header f'P3\\n{largeur} {hauteur}\\n255'.",
+                "Repeat the color string across all rows."
+            ],
+        },
+        "med-03": {
+            "title": "Image filters: Grayscale luminance",
+            "content": r"""## The luminance formula
+
+The human eye is much more sensitive to green than red or blue. To convert
+color to realistic grayscale, use the standard luminance formula (ITU-R BT.601):
+\[ Y = 0.299 \times R + 0.587 \times G + 0.114 \times B \]
+
+## Your turn
+
+Write `pixel_vers_gris(r: int, g: int, b: int) -> tuple[int, int, int]` which
+computes the rounded luminance and returns `(gris, gris, gris)`.""",
+            "hints": [
+                "val = round(0.299 * r + 0.587 * g + 0.114 * b)",
+                "Return (val, val, val)."
+            ],
+        },
+        "med-04": {
+            "title": "Generating checkerboard patterns",
+            "content": """## Matrix coordinates (row, col)
+
+A 2D image grid can generate a checkerboard by inspecting the parity of `(row + col)`:
+`color1 if (row + col) % 2 == 0 else color2`
+
+## Your turn
+
+Write `generer_grille_damier(taille: int, c1: tuple, c2: tuple) -> list[list[tuple]]`
+which returns a `taille x taille` 2D list alternating `c1` and `c2`.""",
+            "hints": [
+                "Use nested list comprehensions across range(taille).",
+                "c1 if (i + j) % 2 == 0 else c2"
+            ],
+        },
+        "med-05": {
+            "title": "Audio synthesis: Sampling a sine wave",
+            "content": r"""## Digital audio & sine waves
+
+A pure musical tone (e.g. A4 440 Hz) is a sine wave of frequency \(f\):
+\[ s(t) = A \times \sin(2 \pi f t) \]
+
+At a sampling rate of 44100 Hz, we sample 44100 times per second:
+
+```python
+import math
+
+freq = 440.0
+rate = 44100
+duration = 1.0
+samples = [
+    int(32767 * math.sin(2 * math.pi * freq * (i / rate)))
+    for i in range(int(rate * duration))
+]
+```
+
+## Your turn
+
+Write `echantillonner_sinus(frequence: float, duree_sec: float, taux=44100, amplitude=10000) -> list[int]`
+that returns the list of sampled integer values.""",
+            "hints": [
+                "Total samples = int(taux * duree_sec).",
+                "Compute int(amplitude * math.sin(2 * math.pi * frequence * (i / taux)))."
+            ],
+        },
+        "med-06": {
+            "title": "Programming a melody",
+            "content": """## Concatenating musical notes
+
+Each musical note has a physical frequency (A4 = 440 Hz, C4 = 261.63 Hz...).
+A sheet score can be represented as a list of `(frequency, duration_sec)` tuples.
+
+## Your turn
+
+Write `concatener_partition(partition: list[tuple[float, float]], taux=1000) -> list[int]`
+which returns the concatenated audio samples for the full melody (amplitude = 10000).""",
+            "hints": [
+                "Iterate over (freq, duration) pairs.",
+                "Generate samples for each note and append to the result."
+            ],
+        },
+        "qz-med": {
+            "title": "Quiz: Multimedia recap",
+            "content": "## Netpbm and PPM",
+            "question": "What is unique about the Netpbm (PPM P3) image format?",
+            "options": [
+                "It uses proprietary lossless vector compression.",
+                "It is a human-readable ASCII text format created without external libraries.",
+                "It strictly requires Pillow to be installed.",
+                "It only supports monochrome black and white images.",
+            ],
+            "explanation": (
+                "PPM (P3) is plain ASCII text with a simple header followed by decimal RGB triplets, "
+                "making it ideal for creating images using pure standard Python."
+            ),
+        },
+        # ------------------------------------------ Track 20: AI & Machine Learning
+        "ia_ml": {"title": "20 · Artificial Intelligence (from scratch)"},
+        "ia-01": {
+            "title": "k-Nearest Neighbors (k-NN)",
+            "content": r"""## Classification by proximity
+
+The **k-NN** algorithm classifies a new data point by finding the `k` closest
+known data points in Euclidean space and taking the majority class.
+
+Euclidean distance:
+\[ d = \sqrt{(x_1 - x_2)^2 + (y_1 - y_2)^2} \]
+
+## Your turn
+
+Write `knn_classifier(points_connus: list[tuple[float, float, str]], point_cible: tuple[float, float], k=3) -> str`
+which calculates distances, selects the `k` closest, and returns the most frequent label.""",
+            "hints": [
+                "Compute distance ((x - xt)**2 + (y - yt)**2)**0.5 for each known point.",
+                "Sort by distance, take the top k, and use Counter to find the majority."
+            ],
+        },
+        "ia-02": {
+            "title": "Linear Regression by Least Squares",
+            "content": r"""## Finding the trendline y = ax + b
+
+Linear regression predicts a continuous value by minimizing squared errors:
+\[ a = \frac{\sum (x_i - \bar{x})(y_i - \bar{y})}{\sum (x_i - \bar{x})^2} \]
+\[ b = \bar{y} - a \bar{x} \]
+
+## Your turn
+
+Write `regression_lineaire(points: list[tuple[float, float]]) -> tuple[float, float]`
+that calculates and returns `(a, b)` as floats.""",
+            "hints": [
+                "Calculate x_bar and y_bar first.",
+                "Compute numerator and denominator sums."
+            ],
+        },
+        "ia-03": {
+            "title": "Decision Tree logic",
+            "content": """## Branching rule engines
+
+A decision tree classifies data by evaluating a series of conditional rules (if/else).
+
+Rules for loan evaluation:
+1. If income < 1500 -> `"refus"`
+2. Else if has debts and down payment < 5000 -> `"refus"`
+3. Otherwise -> `"accord"`
+
+## Your turn
+
+Write `evaluer_pret(revenu: float, apport: float, a_dettes: bool) -> str`
+that implements these rules and returns `"accord"` or `"refus"`.""",
+            "hints": [
+                "Check income < 1500 first.",
+                "Then check a_dettes and apport < 5000."
+            ],
+        },
+        "ia-04": {
+            "title": "The Perceptron (Artificial Neuron)",
+            "content": r"""## The foundation of Neural Networks
+
+A perceptron calculates a weighted sum of inputs plus a bias:
+\[ z = \sum_{i} x_i w_i + b \]
+
+If \(z \ge 0\), the neuron activates and returns `1`, otherwise `0`.
+
+## Your turn
+
+Write `activer_perceptron(entrees: list[float], poids: list[float], biais: float) -> int`
+that computes \(z = \sum x_i w_i + b\) and returns `1` if \(z \ge 0\) else `0`.""",
+            "hints": [
+                "Use zip(entrees, poids) to sum products.",
+                "Return 1 if z >= 0 else 0."
+            ],
+        },
+        "ia-05": {
+            "title": "Text Sentiment Analysis",
+            "content": """## Classifying emotional tone
+
+Lexicon-based sentiment analysis scores a text by subtracting negative word count
+from positive word count:
+- Score > 0 -> `"positif"`
+- Score < 0 -> `"negatif"`
+- Score == 0 -> `"neutre"`
+
+## Your turn
+
+Write `analyser_sentiment(texte: str, mots_positifs: set, mots_negatifs: set) -> str`
+that tokenizes lowercase words and returns `"positif"`, `"negatif"`, or `"neutre"`.""",
+            "hints": [
+                "Use re.findall(r'\\w+', texte.lower()) to extract clean words.",
+                "Count positive and negative occurrences."
+            ],
+        },
+        "ia-06": {
+            "title": "Recommendation engine (Cosine Similarity)",
+            "content": r"""## Comparing user preferences
+
+To measure similarity between two preference vectors:
+\[ \text{similarity}(u, v) = \frac{u \cdot v}{\|u\| \|v\|} \]
+
+A score of `1.0` indicates identical preferences.
+
+## Your turn
+
+Write `similarite_cosinus(u: list[float], v: list[float]) -> float` that returns
+the cosine similarity between two vectors (return `0.0` if any norm is zero).""",
+            "hints": [
+                "Compute dot product sum(a * b for a, b in zip(u, v)).",
+                "Divide by math.sqrt(sum(a*a)) * math.sqrt(sum(b*b))."
+            ],
+        },
+        "qz-ia": {
+            "title": "Quiz: Artificial Intelligence recap",
+            "content": "## Machine Learning fundamentals",
+            "question": "In the k-Nearest Neighbors (k-NN) algorithm, what does 'k' represent?",
+            "options": [
+                "The number of dimensions in the dataset.",
+                "The number of closest neighbors consulted for the majority vote.",
+                "The learning rate of the optimization step.",
+                "The number of neurons in the hidden layer.",
+            ],
+            "explanation": (
+                "k represents the number of closest data points examined to determine "
+                "the majority classification label."
+            ),
+        },
+        # ------------------------------------------ Track 21: Networks
+        "reseaux": {"title": "21 · Networks & Protocols"},
+        "net-01": {
+            "title": "IP addresses and Ports",
+            "content": """## Machine identification on a network
+
+Network communication requires:
+1. **IP Address** (e.g. `192.168.1.1` or `127.0.0.1`): identifies the host.
+2. **Port** (e.g. `80` HTTP, `443` HTTPS): identifies the listening application.
+
+The `ipaddress` module validates IP addresses in standard Python.
+
+## Your turn
+
+Write `analyser_adresse(hote_port: str, port_defaut=80) -> tuple[str, int]` that
+splits a string like `"192.168.1.1:8080"` into `(host, port_int)`.""",
+            "hints": [
+                "Check if ':' is in hote_port.",
+                "Use rsplit(':', 1) and int(port)."
+            ],
+        },
+        "net-02": {
+            "title": "Framing with delimited JSON",
+            "content": """## Why frame stream data?
+
+TCP sockets deliver a continuous byte stream without message boundaries.
+Adding a `\\n` delimiter allows reliable message reconstruction.
+
+## Your turn
+
+Write two functions:
+1. `encoder_trame(donnees: dict) -> bytes`: serializes to JSON utf-8 with trailing `\\n`.
+2. `decoder_trame(paquet_octets: bytes) -> dict`: decodes and parses JSON.""",
+            "hints": [
+                "json.dumps(donnees).encode('utf-8') + b'\\n'",
+                "json.loads(paquet_octets.decode('utf-8').strip())"
+            ],
+        },
+        "net-03": {
+            "title": "Decoding raw HTTP requests",
+            "content": """## Anatomy of HTTP/1.1 requests
+
+The first line of an HTTP request is structured as: `METHOD PATH VERSION`.
+
+## Your turn
+
+Write `parser_ligne_requete(ligne_brute: str) -> dict` that parses `"GET /api/users HTTP/1.1"`
+into `{"methode": "GET", "chemin": "/api/users", "version": "HTTP/1.1"}`.""",
+            "hints": [
+                "Strip whitespace and split().",
+                "Map parts to methode, chemin, version."
+            ],
+        },
+        "net-04": {
+            "title": "Testing port connectivity (Sockets)",
+            "content": """## The socket module
+
+`socket.create_connection((host, port), timeout)` tests whether a TCP port is reachable.
+
+## Your turn
+
+Write `formater_statut_port(hote: str, port: int, est_ouvert: bool) -> str` that
+returns `f"{hote}:{port} -> OUVERT"` if open, else `f"{hote}:{port} -> FERME"`.""",
+            "hints": [
+                "Use ternary condition 'OUVERT' if est_ouvert else 'FERME'.",
+                "Format string with f'{hote}:{port} -> {statut}'."
+            ],
+        },
+        "net-05": {
+            "title": "Private subnets and loopback addresses",
+            "content": """## RFC 1918 Private ranges
+
+Private IP ranges (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `127.0.0.1`)
+are non-routable on the public Internet.
+
+## Your turn
+
+Write `est_adresse_locale(ip_str: str) -> bool` using `ipaddress.ip_address`
+returning `True` if private or loopback, `False` otherwise.""",
+            "hints": [
+                "Use ipaddress.ip_address(ip_str) in try/except ValueError.",
+                "Return ip.is_private or ip.is_loopback."
+            ],
+        },
+        "net-06": {
+            "title": "Chat server message broadcasting",
+            "content": """## Broadcasting to connected clients
+
+When a client sends a message, a chat server broadcasts it to all other active clients.
+
+## Your turn
+
+Write `diffuser_message(clients: list, expediteur, message: str) -> list[tuple[str, str]]`
+that returns `[(recipient, f"[{expediteur}] {message}"), ...]` for all other clients.""",
+            "hints": [
+                "Format f'[{expediteur}] {message}'.",
+                "Filter clients where c != expediteur."
+            ],
+        },
+        "qz-net": {
+            "title": "Quiz: Networks recap",
+            "content": "## Sockets and TCP",
+            "question": "Why do TCP socket protocols require delimiters (like '\\n') or length headers?",
+            "options": [
+                "Because TCP requires all payloads to be ASCII.",
+                "Because TCP is a continuous byte stream with no application message boundaries.",
+                "To automatically encrypt network packets.",
+                "To force routers to retransmit dropped packets.",
+            ],
+            "explanation": (
+                "TCP delivers a stream of bytes without message boundaries. "
+                "Delimiters or length headers allow the receiver to segment discrete messages."
+            ),
+        },
+        # ------------------------------------------ Track 22: Video Games
+        "jeux_video": {"title": "22 · Game Architecture & 2D Logic"},
+        "gam-01": {
+            "title": "Game loop & Delta Time",
+            "content": r"""## The Game Loop
+
+A game loop updates game state 60 times per second. Multiplying velocities by
+**Delta Time** (`dt`) guarantees consistent movement speeds across all display refresh rates:
+\[ \text{new\_pos} = \text{pos} + \text{velocity} \times dt \]
+
+## Your turn
+
+Write `calculer_nouvelle_position(x: float, vx: float, dt: float) -> float`.""",
+            "hints": [
+                "Apply x + vx * dt.",
+                "Return float result."
+            ],
+        },
+        "gam-02": {
+            "title": "2D Grid movement and collision detection",
+            "content": """## Grid traversal
+
+Given a 2D tilemap where `'.'` is walkable and `'#'` is a solid wall:
+prevent movement into walls or out-of-bounds cells.
+
+## Your turn
+
+Write `deplacer_joueur(grille: list[str], x: int, y: int, dx: int, dy: int) -> tuple[int, int]`
+which returns `(nx, ny)` if walkable, else `(x, y)`.""",
+            "hints": [
+                "Compute nx = x + dx, ny = y + dy.",
+                "Verify boundary constraints and check grille[ny][nx] != '#'."
+            ],
+        },
+        "gam-03": {
+            "title": "Inventory systems & Weight capacity",
+            "content": """## RPG Inventory management
+
+An inventory contains `[{"nom": ..., "poids": ..., "quantite": ...}]` with a max weight limit.
+
+## Your turn
+
+Write `ajouter_au_sac(sac: list[dict], nom: str, poids_unitaire: float, quantite: int, capacite_max=20.0) -> bool`.""",
+            "hints": [
+                "Sum existing item weights.",
+                "Reject if total exceeds capacite_max, otherwise update quantity or append."
+            ],
+        },
+        "gam-04": {
+            "title": "Turn-based combat damage calculation",
+            "content": r"""## Damage formulas with critical hits
+
+\[ \text{damage} = \max(1, \text{attack} - \text{defense}) \times (\text{2 if critical else 1}) \]
+
+HP cannot fall below 0.
+
+## Your turn
+
+Write `subir_attaque(pv_actuels: int, attaque: int, defense: int, est_critique=False) -> int`.""",
+            "hints": [
+                "degats = max(1, attaque - defense)",
+                "Double if critical, return max(0, pv_actuels - degats)."
+            ],
+        },
+        "gam-05": {
+            "title": "Enemy pursuit AI",
+            "content": """## Chasing the player
+
+A basic pursuit AI moves one step along each axis towards the player.
+
+## Your turn
+
+Write `pas_poursuite(monstre: tuple[int, int], joueur: tuple[int, int]) -> tuple[int, int]`
+returning `(dx, dy)` where each component is `-1`, `0`, or `1`.""",
+            "hints": [
+                "Compare xm with xj for dx (-1, 0, 1).",
+                "Compare ym with yj for dy (-1, 0, 1)."
+            ],
+        },
+        "gam-06": {
+            "title": "Game save/load with JSON",
+            "content": """## Serializing game state
+
+Serialize game progress into JSON strings for persistent saves.
+
+## Your turn
+
+Write `sauvegarder_partie(joueur_nom, score, objets)` and `charger_partie(json_str)`.""",
+            "hints": [
+                "json.dumps({'nom': ..., 'score': ..., 'objets': ...})",
+                "json.loads(json_str)"
+            ],
+        },
+        "qz-gam": {
+            "title": "Quiz: Video Games recap",
+            "content": "## Game loop architecture",
+            "question": "What is the purpose of Delta Time (dt) in a game loop?",
+            "options": [
+                "To increase game difficulty over time.",
+                "To maintain identical movement speed regardless of monitor refresh rate (FPS).",
+                "To compress textures in GPU VRAM.",
+                "To calculate magic damage formulas.",
+            ],
+            "explanation": (
+                "By scaling movements by the real elapsed time between frames (dt), "
+                "motion remains smooth and speed-consistent across 30, 60, or 144 Hz displays."
+            ),
+        },
+        # ------------------------------------------ Track 23: Design Patterns
+        "design_patterns": {"title": "23 · Design Patterns & Modern Typing"},
+        "pat-01": {
+            "title": "The Factory pattern",
+            "content": """## Decoupling object instantiation
+
+The Factory pattern delegates object creation to a specialized creator.
+
+## Your turn
+
+Write `Voiture` (with `type() -> 'voiture'`), `Moto` (with `type() -> 'moto'`), and
+`fabrique_vehicule(nom: str)` returning the matching instance (or raising `ValueError`).""",
+            "hints": [
+                "Implement type(self) on both classes.",
+                "Return Voiture() or Moto() based on nom."
+            ],
+        },
+        "pat-02": {
+            "title": "The Observer pattern (Event Emitter)",
+            "content": """## Decoupling event publishers and subscribers
+
+The Observer pattern notifies registered callbacks whenever an event triggers.
+
+## Your turn
+
+Write `GestionnaireEvenements` with `__init__`, `abonner(callback)`, and `emettre(donnees)`.""",
+            "hints": [
+                "Store callbacks in a list.",
+                "Call cb(donnees) on all listeners during emettre."
+            ],
+        },
+        "pat-03": {
+            "title": "The Strategy pattern",
+            "content": """## Interchangeable algorithms
+
+The Strategy pattern allows swapping calculation algorithms dynamically.
+
+## Your turn
+
+Write `CalculateurPrix(strategie)` with method `calculer(prix_base: float) -> float`.""",
+            "hints": [
+                "Save self.strategie in __init__.",
+                "Return self.strategie(prix_base) in calculer."
+            ],
+        },
+        "pat-04": {
+            "title": "Abstract Base Classes (abc.ABC)",
+            "content": """## Enforcing interface contracts
+
+Use `@abstractmethod` from `abc` to mandate child class implementations.
+
+## Your turn
+
+Define abstract `Notificateur(ABC)` with `@abstractmethod def envoyer(self, message)`
+and concrete subclass `NotificateurEmail(Notificateur)` returning `f"[EMAIL] {message}"`.""",
+            "hints": [
+                "Decorate with @abstractmethod.",
+                "Implement def envoyer(self, message): return f'[EMAIL] {message}' in NotificateurEmail."
+            ],
+        },
+        "pat-05": {
+            "title": "Structural typing with Protocol (Duck Typing)",
+            "content": """## Static Duck Typing with typing.Protocol
+
+`typing.Protocol` defines interfaces by structure rather than inheritance.
+
+## Your turn
+
+Define `Sauvegardable(Protocol)` with `sauvegarder(self) -> bool: ...`
+and `sauvegarder_tous(elements: list) -> bool`.""",
+            "hints": [
+                "Use all(e.sauvegarder() for e in elements).",
+                "Return True for empty lists."
+            ],
+        },
+        "pat-06": {
+            "title": "Robust enumerations with Enum",
+            "content": """## Replacing magic strings with enum.Enum
+
+Named constants eliminate typo bugs in application state.
+
+## Your turn
+
+Create `NiveauAlerte(Enum)` with `INFO = 1`, `ATTENTION = 2`, `CRITIQUE = 3`
+and `est_urgent(niveau: NiveauAlerte) -> bool` returning `True` for `CRITIQUE`.""",
+            "hints": [
+                "Declare members INFO = 1, ATTENTION = 2, CRITIQUE = 3 in NiveauAlerte(Enum).",
+                "Return niveau == NiveauAlerte.CRITIQUE."
+            ],
+        },
+        "qz-pat": {
+            "title": "Quiz: Design Patterns recap",
+            "content": "## Protocols and ABCs",
+            "question": "What is the core difference between `abc.ABC` and `typing.Protocol` in Python?",
+            "options": [
+                "Protocol is slower at runtime than ABC.",
+                "ABC enforces explicit nominal subclassing, while Protocol enables static structural Duck Typing.",
+                "ABC only works with functions, not classes.",
+                "Protocol cannot support type hints.",
+            ],
+            "explanation": (
+                "ABC validates formal subclass inheritance, whereas typing.Protocol checks structural "
+                "conformance (methods and attributes) without forcing inheritance."
+            ),
+        },
     },
 }
 
