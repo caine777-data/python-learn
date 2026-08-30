@@ -384,9 +384,8 @@ class AccueilWindow(tk.Toplevel):
             tk.Label(self, text=app.tr("acc_termine"), bg=C["panel"], fg=C["ok"],
                      wraplength=380, justify="center").pack(pady=4)
 
-        from content import CURRICULUM
-
         from app.stats import defi_du_jour
+        from content import CURRICULUM
         defi = defi_du_jour(CURRICULUM)
         if defi:
             fait = defi["id"] in app.data.get("completed", [])

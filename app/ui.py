@@ -9,20 +9,6 @@ import webbrowser
 from datetime import date
 from tkinter import filedialog, font, messagebox, simpledialog, ttk
 
-from content import (
-    CURRICULUM,
-    ajouter_packs,
-    exercice_count,
-    find_lesson,
-    get_exercice,
-    get_glossaire,
-    hints_for,
-    lesson_done,
-    lesson_items,
-    total_count,
-    traduit,
-)
-
 from app import errors, stats
 from app import progress as prog
 from app.editor import CodeEditor
@@ -39,6 +25,19 @@ from app.windows import (
     PaletteWindow,
     SqliteViewerWindow,
     StepWindow,
+)
+from content import (
+    CURRICULUM,
+    ajouter_packs,
+    exercice_count,
+    find_lesson,
+    get_exercice,
+    get_glossaire,
+    hints_for,
+    lesson_done,
+    lesson_items,
+    total_count,
+    traduit,
 )
 
 try:

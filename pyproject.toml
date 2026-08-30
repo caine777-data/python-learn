@@ -53,6 +53,9 @@ ignore = [
     "B008",    # appel de fonction dans une valeur par défaut : voulu pour Tkinter
 ]
 
+[tool.ruff.lint.isort]
+known-first-party = ["app", "content"]
+
 [tool.ruff.lint.per-file-ignores]
 # Le curriculum contient volontairement du code d'exemple imparfait
 # (c'est le sujet même des exercices « débogue ce code »).
