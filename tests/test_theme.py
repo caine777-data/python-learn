@@ -9,7 +9,7 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.theme import THEMES, THEME_ORDER, assombrir, eclaircir, melange
+from app.theme import THEME_ORDER, THEMES, assombrir, eclaircir, melange
 
 _HEX_COLOR = re.compile(r"^#[0-9a-fA-F]{6}$")
 

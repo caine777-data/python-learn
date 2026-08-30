@@ -9,6 +9,20 @@ import webbrowser
 from datetime import date
 from tkinter import filedialog, font, messagebox, simpledialog, ttk
 
+from content import (
+    CURRICULUM,
+    ajouter_packs,
+    exercice_count,
+    find_lesson,
+    get_exercice,
+    get_glossaire,
+    hints_for,
+    lesson_done,
+    lesson_items,
+    total_count,
+    traduit,
+)
+
 from app import errors, stats
 from app import progress as prog
 from app.editor import CodeEditor
@@ -25,19 +39,6 @@ from app.windows import (
     PaletteWindow,
     SqliteViewerWindow,
     StepWindow,
-)
-from content import (
-    CURRICULUM,
-    ajouter_packs,
-    exercice_count,
-    find_lesson,
-    get_exercice,
-    get_glossaire,
-    hints_for,
-    lesson_done,
-    lesson_items,
-    total_count,
-    traduit,
 )
 
 try:
@@ -428,7 +429,7 @@ class PythonLearnApp:
             return
         parcours_titre = ""
         for level in CURRICULUM:
-            if any(l["id"] == self.current["id"] for l in level["lessons"]):
+            if any(lecon["id"] == self.current["id"] for lecon in level["lessons"]):
                 parcours_titre = self.txt(level, "title")
                 break
         lecon_titre = self.txt(self.current, "title")
@@ -481,7 +482,6 @@ class PythonLearnApp:
                         "#ff5555", "#50fa7b", "#ffb86c", "#8be9fd", "#bd93f9"]
             particules = []
             w = self.root.winfo_width() or 800
-            h = self.root.winfo_height() or 600
             for _ in range(45):
                 px = random.randint(20, max(40, w - 20))
                 py = random.randint(-80, 20)

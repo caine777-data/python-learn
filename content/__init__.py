@@ -47,7 +47,8 @@ from . import (
     tests_tdd,
     web,
 )
-from .glossaire import GLOSSAIRE, get_glossaire
+from .glossaire import GLOSSAIRE as GLOSSAIRE
+from .glossaire import get_glossaire as get_glossaire
 from .hints import HINTS
 from .quiz_parcours import QUIZ
 from .traductions import appliquer as _appliquer_traductions
@@ -81,7 +82,7 @@ CURRICULUM = [
 # Ajoute le quiz de fin à chaque parcours concerné (idempotent).
 for _level in CURRICULUM:
     _quiz = QUIZ.get(_level["id"])
-    if _quiz and not any(l["id"] == _quiz["id"] for l in _level["lessons"]):
+    if _quiz and not any(lecon["id"] == _quiz["id"] for lecon in _level["lessons"]):
         _level["lessons"].append(_quiz)
 
 # Les traductions sont injectées APRÈS les quiz de fin : ceux-ci sont
@@ -204,7 +205,7 @@ def hints_for(lesson, exercice=None, langue="fr"):
 
 def total_count():
     """Nombre total d'éléments validables (exercices + quiz)."""
-    return sum(len(lesson_items(l)) for _, l in all_lessons())
+    return sum(len(lesson_items(lecon)) for _, lecon in all_lessons())
 
 
 def lesson_done(lesson, completed):
