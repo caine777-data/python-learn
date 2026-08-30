@@ -1,6 +1,6 @@
 [project]
 name = "python-learn"
-version = "1.2.0"
+version = "1.3.0"
 description = "Apprendre Python pas à pas, du débutant à l'expert — application de bureau."
 readme = "README.md"
 requires-python = ">=3.10"
